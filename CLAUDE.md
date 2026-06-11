@@ -11,11 +11,11 @@ Every session starts here. Every session ends by updating STATE.
 
 ```
 PHASE:        1 — MVP
-ACTIVE TASK:  TASK-006
+ACTIVE TASK:  TASK-008
 STATUS:       NOT STARTED
 LAST UPDATED: 2026-06-11
 BLOCKER:      none
-LAST DONE:    TASK-005 (2026-06-11)
+LAST DONE:    TASK-007 (2026-06-11)
 ```
 
 ---
@@ -58,33 +58,33 @@ STOP
 
 ## Phase 1 Task Registry
 
-| ID       | Title                        | State      | Depends On          |
-| -------- | ---------------------------- | ---------- | ------------------- |
-| TASK-001 | Project scaffolding          | **DONE**   | —                   |
-| TASK-002 | Environment validation       | **ACTIVE** | 001                 |
-| TASK-003 | Database + Prisma            | todo       | 001 002             |
-| TASK-004 | Clerk authentication         | todo       | 001 002 003         |
-| TASK-005 | Marketing landing page       | todo       | 001 004             |
-| TASK-006 | App shell + navigation       | todo       | 001 004             |
-| TASK-007 | GitHub OAuth + token storage | todo       | 003 004             |
-| TASK-008 | GitHub repo browser          | todo       | 007                 |
-| TASK-009 | Project creation flow        | todo       | 007 008 003         |
-| TASK-010 | Repository fetcher           | todo       | 007 003             |
-| TASK-011 | Analysis job queue           | todo       | 003 010             |
-| TASK-012 | Architecture analysis module | todo       | 010 011             |
-| TASK-013 | Code quality module          | todo       | 010 011             |
-| TASK-014 | Security analysis module     | todo       | 010 011             |
-| TASK-015 | Dependencies module          | todo       | 010 011             |
-| TASK-016 | Product readiness module     | todo       | 010 011             |
-| TASK-017 | SaaS Score algorithm         | todo       | 012 013 014 015 016 |
-| TASK-018 | Analysis results page        | todo       | 017 006             |
-| TASK-019 | Executive summary (AI)       | todo       | 012 013 014 015 016 |
-| TASK-020 | Finding cards + detail       | todo       | 018                 |
-| TASK-021 | Analysis progress stream     | todo       | 011 018             |
-| TASK-022 | Stripe + Pro plan            | todo       | 003 004             |
-| TASK-023 | Plan limits enforcement      | todo       | 022 003             |
-| TASK-024 | User settings page           | todo       | 004 007 022         |
-| TASK-025 | Transactional email          | todo       | 004                 |
+| ID       | Title                        | State    | Depends On          |
+| -------- | ---------------------------- | -------- | ------------------- |
+| TASK-001 | Project scaffolding          | **DONE** | —                   |
+| TASK-002 | Environment validation       | **DONE** | 001                 |
+| TASK-003 | Database + Prisma            | **DONE** | 001 002             |
+| TASK-004 | Clerk authentication         | **DONE** | 001 002 003         |
+| TASK-005 | Marketing landing page       | **DONE** | 001 004             |
+| TASK-006 | App shell + navigation       | **DONE** | 001 004             |
+| TASK-007 | GitHub OAuth + token storage | **DONE** | 003 004             |
+| TASK-008 | GitHub repo browser          | todo     | 007                 |
+| TASK-009 | Project creation flow        | todo     | 007 008 003         |
+| TASK-010 | Repository fetcher           | todo     | 007 003             |
+| TASK-011 | Analysis job queue           | todo     | 003 010             |
+| TASK-012 | Architecture analysis module | todo     | 010 011             |
+| TASK-013 | Code quality module          | todo     | 010 011             |
+| TASK-014 | Security analysis module     | todo     | 010 011             |
+| TASK-015 | Dependencies module          | todo     | 010 011             |
+| TASK-016 | Product readiness module     | todo     | 010 011             |
+| TASK-017 | SaaS Score algorithm         | todo     | 012 013 014 015 016 |
+| TASK-018 | Analysis results page        | todo     | 017 006             |
+| TASK-019 | Executive summary (AI)       | todo     | 012 013 014 015 016 |
+| TASK-020 | Finding cards + detail       | todo     | 018                 |
+| TASK-021 | Analysis progress stream     | todo     | 011 018             |
+| TASK-022 | Stripe + Pro plan            | todo     | 003 004             |
+| TASK-023 | Plan limits enforcement      | todo     | 022 003             |
+| TASK-024 | User settings page           | todo     | 004 007 022         |
+| TASK-025 | Transactional email          | todo     | 004                 |
 
 ---
 

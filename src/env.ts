@@ -15,9 +15,9 @@ export const env = createEnv({
     STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
     STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
 
-    // GitHub OAuth (required from TASK-007)
-    GITHUB_CLIENT_ID: z.string().min(1).optional(),
-    GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+    // GitHub OAuth
+    GITHUB_CLIENT_ID: z.string().min(1),
+    GITHUB_CLIENT_SECRET: z.string().min(1),
 
     // GitHub token encryption (AES-256-GCM) — must be 64-char hex (32 bytes)
     ENCRYPTION_KEY: z
