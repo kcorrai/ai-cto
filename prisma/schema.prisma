@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  free
+  pro
+  team
+  enterprise
+}
+
+enum SubscriptionStatus {
+  active
+  past_due
+  canceled
+  trialing
+  incomplete
+  paused
+}
+
+enum ProjectType {
+  github
+  upload
+  url
+}
+
+enum ProjectStatus {
+  active
+  archived
+  deleted
+}
+
+enum AnalysisTrigger {
+  manual
+  auto
+  webhook
+  scheduled
+}
+
+enum AnalysisStatus {
+  queued
+  fetching
+  analyzing
+  synthesizing
+  complete
+  failed
+}
+
+enum ModuleName {
+  architecture
+  code_quality
+  security
+  performance
+  testing
+  documentation
+  dependencies
+  api_design
+  database
+  devops
+  product_readiness
+  saas_maturity
+}
+
+enum ModuleStatus {
+  pending
+  running
+  complete
+  failed
+  skipped
+}
+
+enum Severity {
+  critical
+  high
+  medium
+  low
+  info
+}
+
+enum Effort {
+  low
+  medium
+  high
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId           String    @unique @db.VarChar(255)
+  email             String    @unique @db.VarChar(255)
+  name              String?   @db.VarChar(255)
+  avatarUrl         String?
+  plan              Plan      @default(free)
+  stripeCustomerId  String?   @unique @db.VarChar(255)
+  githubUsername    String?   @db.VarChar(255)
+  githubAccessToken String?   // stored encrypted
+  githubTokenScope  String?
+  settings          Json      @default("{}")
+  onboardingStep    Int       @default(0)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt         DateTime? @db.Timestamptz(6)
+
+  projects          Project[]
+  subscriptions     Subscription[]
+  analyses          Analysis[]       @relation("TriggeredBy")
+  resolvedFindings  Finding[]        @relation("ResolvedBy")
+
+  @@index([clerkId])
+  @@index([email])
+  @@index([stripeCustomerId])
+  @@map("users")
+}
+
+model Subscription {
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String             @db.Uuid
+  stripeSubscriptionId String             @unique @db.VarChar(255)
+  stripePriceId        String             @db.VarChar(255)
+  status               SubscriptionStatus
+  plan                 Plan
+  currentPeriodStart   DateTime?          @db.Timestamptz(6)
+  currentPeriodEnd     DateTime?          @db.Timestamptz(6)
+  trialEnd             DateTime?          @db.Timestamptz(6)
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?          @db.Timestamptz(6)
+  metadata             Json               @default("{}")
+  createdAt            DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Project {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String        @db.Uuid
+  name           String        @db.VarChar(255)
+  slug           String        @db.VarChar(255)
+  description    String?
+  type           ProjectType   @default(github)
+  githubRepoId   BigInt?
+  githubOwner    String?       @db.VarChar(255)
+  githubRepo     String?       @db.VarChar(255)
+  githubBranch   String?       @default("main") @db.VarChar(255)
+  githubUrl      String?
+  isPrivate      Boolean       @default(false)
+  language       String?       @db.VarChar(50)
+  framework      String?       @db.VarChar(50)
+  techStack      Json          @default("[]")
+  lastAnalyzedAt DateTime?     @db.Timestamptz(6)
+  analysisCount  Int           @default(0)
+  latestScore    Int?
+  autoAnalyze    Boolean       @default(false)
+  status         ProjectStatus @default(active)
+  settings       Json          @default("{}")
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
+  deletedAt      DateTime?     @db.Timestamptz(6)
+
+  user     User       @relation(fields: [userId], references: [id])
+  analyses Analysis[]
+  findings Finding[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([githubRepoId])
+  @@index([status])
+  @@map("projects")
+}
+
+model Analysis {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String         @db.Uuid
+  triggeredById   String         @db.Uuid
+  trigger         AnalysisTrigger @default(manual)
+  status          AnalysisStatus
+  progress        Int            @default(0)
+  score           Int?
+  scoreBreakdown  Json?
+  summary         String?
+  findings        Json           @default("[]")
+  recommendations Json           @default("[]")
+  metadata        Json           @default("{}")
+  modelUsed       String?        @db.VarChar(100)
+  tokenCount      Int?
+  durationMs      Int?
+  errorMessage    String?
+  blobPath        String?
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
+  completedAt     DateTime?      @db.Timestamptz(6)
+
+  project         Project          @relation(fields: [projectId], references: [id])
+  triggeredBy     User             @relation("TriggeredBy", fields: [triggeredById], references: [id])
+  modules         AnalysisModule[]
+  findingRecords  Finding[]
+
+  @@index([projectId])
+  @@index([triggeredById])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("analyses")
+}
+
+model AnalysisModule {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  analysisId   String       @db.Uuid
+  module       ModuleName
+  status       ModuleStatus
+  score        Int?
+  findings     Json         @default("[]")
+  rawOutput    Json?
+  durationMs   Int?
+  tokenCount   Int?
+  errorMessage String?
+  createdAt    DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(6)
+
+  analysis Analysis @relation(fields: [analysisId], references: [id])
+
+  @@unique([analysisId, module])
+  @@index([analysisId])
+  @@map("analysis_modules")
+}
+
+model Finding {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  analysisId     String    @db.Uuid
+  projectId      String    @db.Uuid
+  module         String    @db.VarChar(50)
+  severity       Severity
+  category       String?   @db.VarChar(100)
+  title          String    @db.VarChar(500)
+  description    String?
+  recommendation String?
+  effort         Effort?
+  impact         Effort?
+  filePath       String?
+  lineRange      String?   @db.VarChar(50)
+  isResolved     Boolean   @default(false)
+  resolvedAt     DateTime? @db.Timestamptz(6)
+  resolvedById   String?   @db.Uuid
+  metadata       Json      @default("{}")
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+
+  analysis   Analysis @relation(fields: [analysisId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id])
+  resolvedBy User?    @relation("ResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([projectId])
+  @@index([analysisId])
+  @@index([severity])
+  @@index([isResolved])
+  @@map("findings")
+}
