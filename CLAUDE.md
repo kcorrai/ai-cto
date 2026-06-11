@@ -11,11 +11,11 @@ Every session starts here. Every session ends by updating STATE.
 
 ```
 PHASE:        1 — MVP
-ACTIVE TASK:  TASK-009
+ACTIVE TASK:  TASK-010
 STATUS:       NOT STARTED
 LAST UPDATED: 2026-06-11
 BLOCKER:      none
-LAST DONE:    TASK-008 (2026-06-11)
+LAST DONE:    TASK-009 (2026-06-11)
 ```
 
 ---
@@ -68,7 +68,7 @@ STOP
 | TASK-006 | App shell + navigation       | **DONE** | 001 004             |
 | TASK-007 | GitHub OAuth + token storage | **DONE** | 003 004             |
 | TASK-008 | GitHub repo browser          | **DONE** | 007                 |
-| TASK-009 | Project creation flow        | todo     | 007 008 003         |
+| TASK-009 | Project creation flow        | **DONE** | 007 008 003         |
 | TASK-010 | Repository fetcher           | todo     | 007 003             |
 | TASK-011 | Analysis job queue           | todo     | 003 010             |
 | TASK-012 | Architecture analysis module | todo     | 010 011             |
