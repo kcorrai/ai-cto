@@ -1,0 +1,86 @@
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { redis } from "@/lib/redis";
+import { getGitHubClient } from "@/lib/github/client";
+
+export type Repo = {
+  id: number;
+  name: string;
+  fullName: string;
+  isPrivate: boolean;
+  language: string | null;
+  updatedAt: string;
+  defaultBranch: string;
+};
+
+export type ReposResponse = {
+  personal: Repo[];
+  orgs: { login: string; repos: Repo[] }[];
+};
+
+const CACHE_TTL = 300; // 5 minutes
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pickRepo(r: any): Repo {
+  return {
+    id: r.id as number,
+    name: r.name as string,
+    fullName: r.full_name as string,
+    isPrivate: r.private as boolean,
+    language: (r.language as string | null) ?? null,
+    updatedAt: (r.updated_at as string | null) ?? new Date().toISOString(),
+    defaultBranch: (r.default_branch as string) ?? "main",
+  };
+}
+
+export async function GET() {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await db.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, githubAccessToken: true },
+  });
+
+  if (!user?.githubAccessToken) {
+    return NextResponse.json({ error: "GitHub not connected" }, { status: 400 });
+  }
+
+  const cacheKey = `github:repos:${user.id}`;
+  const cached = await redis.get<ReposResponse>(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached);
+  }
+
+  const octokit = await getGitHubClient(user.id);
+
+  const [personalData, orgsData] = await Promise.all([
+    octokit.repos.listForAuthenticatedUser({
+      affiliation: "owner",
+      sort: "updated",
+      per_page: 100,
+    }),
+    octokit.orgs.listForAuthenticatedUser({ per_page: 100 }),
+  ]);
+
+  const personal = personalData.data.map(pickRepo);
+
+  const orgRepos = await Promise.all(
+    orgsData.data.map(async (org) => {
+      const { data } = await octokit.repos.listForOrg({
+        org: org.login,
+        sort: "updated",
+        per_page: 100,
+      });
+      return { login: org.login, repos: data.map(pickRepo) };
+    })
+  );
+
+  const result: ReposResponse = { personal, orgs: orgRepos };
+  await redis.set(cacheKey, result, { ex: CACHE_TTL });
+
+  return NextResponse.json(result);
+}

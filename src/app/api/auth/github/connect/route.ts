@@ -18,7 +18,7 @@ export async function GET() {
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID!,
     redirect_uri: `${env.NEXT_PUBLIC_APP_URL}/api/auth/github/callback`,
-    scope: "public_repo read:user",
+    scope: "public_repo read:user read:org",
     state,
   });
 
