@@ -1,31 +1,16 @@
+import { after } from "next/server";
 import { db } from "@/lib/db";
-import { redis } from "@/lib/redis";
 import { type AnalysisTrigger } from "@prisma/client";
 import { checkAnalysisLimit, getModulesForPlan } from "@/lib/billing/limits";
+import { processAnalysis } from "@/lib/analysis/processor";
+import {
+  acquireLock,
+  releaseLock,
+  AnalysisAlreadyRunningError,
+  type AnalysisJobPayload,
+} from "@/lib/analysis/shared";
 
-const LOCK_TTL_SECONDS = 600; // 10 minutes — matches visibilityTimeoutSeconds in consumer
-
-export type AnalysisJobPayload = {
-  analysisId: string;
-  projectId: string;
-  userId: string;
-  modules: string[]; // ModuleName values as strings for JSON serialization
-};
-
-export class AnalysisAlreadyRunningError extends Error {
-  constructor(projectId: string) {
-    super(`Analysis already running for project ${projectId}`);
-    this.name = "AnalysisAlreadyRunningError";
-  }
-}
-
-export function lockKey(projectId: string): string {
-  return `analysis:lock:${projectId}`;
-}
-
-export async function releaseLock(projectId: string): Promise<void> {
-  await redis.del(lockKey(projectId));
-}
+export { releaseLock, AnalysisAlreadyRunningError, type AnalysisJobPayload };
 
 export async function triggerAnalysis(
   projectId: string,
@@ -34,9 +19,7 @@ export async function triggerAnalysis(
 ): Promise<string> {
   await checkAnalysisLimit(userId);
 
-  const key = lockKey(projectId);
-
-  const acquired = await redis.set(key, "1", { nx: true, ex: LOCK_TTL_SECONDS });
+  const acquired = await acquireLock(projectId);
   if (!acquired) {
     throw new AnalysisAlreadyRunningError(projectId);
   }
@@ -65,15 +48,7 @@ export async function triggerAnalysis(
       modules: modules as string[],
     };
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    await fetch(`${baseUrl}/api/queues/analysis`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-internal-secret": process.env.ENCRYPTION_KEY ?? "",
-      },
-      body: JSON.stringify(payload),
-    });
+    after(() => processAnalysis(payload).catch(console.error));
   } catch (error) {
     await releaseLock(projectId);
     throw error;

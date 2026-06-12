@@ -139,6 +139,7 @@ export function AnalysisProgress({
   const moduleMap = new Map(data.modules.map((m) => [m.module, m.status]));
   const stageLabel = STAGE_LABELS[data.status] ?? data.status;
   const isFailed = data.status === "failed";
+  const isStuck = data.status === "queued" && data.progress === 0;
 
   return (
     <div className="mx-auto max-w-[480px] px-6 py-12">
@@ -195,10 +196,12 @@ export function AnalysisProgress({
         })}
       </div>
 
-      {/* Failed state */}
-      {isFailed && (
+      {/* Failed or stuck queued state */}
+      {(isFailed || isStuck) && (
         <div className="mt-8 space-y-3">
-          <p className="text-sm text-[#606060]">Something went wrong during analysis.</p>
+          <p className="text-sm text-[#606060]">
+            {isFailed ? "Something went wrong during analysis." : "Analysis is stuck in queue."}
+          </p>
           {error && <p className="text-sm text-[#ef4444]">{error}</p>}
           <button
             onClick={handleRetry}
