@@ -65,9 +65,15 @@ export async function triggerAnalysis(
       modules: modules as string[],
     };
 
-    // Dynamic import so @vercel/queue doesn't initialize at module load time
-    const { send } = await import("@vercel/queue");
-    await send("analysis-jobs", payload, { idempotencyKey: analysisId });
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    await fetch(`${baseUrl}/api/queues/analysis`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": process.env.ENCRYPTION_KEY ?? "",
+      },
+      body: JSON.stringify(payload),
+    });
   } catch (error) {
     await releaseLock(projectId);
     throw error;
