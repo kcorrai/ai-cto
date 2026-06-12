@@ -57,27 +57,31 @@ export async function GET() {
 
   const octokit = await getGitHubClient(user.id);
 
-  const [personalData, orgsData] = await Promise.all([
-    octokit.repos.listForAuthenticatedUser({
-      affiliation: "owner",
-      sort: "updated",
-      per_page: 100,
-    }),
-    octokit.orgs.listForAuthenticatedUser({ per_page: 100 }),
-  ]);
+  const personalData = await octokit.repos.listForAuthenticatedUser({
+    affiliation: "owner",
+    sort: "updated",
+    per_page: 100,
+  });
 
   const personal = personalData.data.map(pickRepo);
 
-  const orgRepos = await Promise.all(
-    orgsData.data.map(async (org) => {
-      const { data } = await octokit.repos.listForOrg({
-        org: org.login,
-        sort: "updated",
-        per_page: 100,
-      });
-      return { login: org.login, repos: data.map(pickRepo) };
-    })
-  );
+  // read:org scope required — gracefully degrade if missing
+  let orgRepos: { login: string; repos: Repo[] }[] = [];
+  try {
+    const orgsData = await octokit.orgs.listForAuthenticatedUser({ per_page: 100 });
+    orgRepos = await Promise.all(
+      orgsData.data.map(async (org) => {
+        const { data } = await octokit.repos.listForOrg({
+          org: org.login,
+          sort: "updated",
+          per_page: 100,
+        });
+        return { login: org.login, repos: data.map(pickRepo) };
+      })
+    );
+  } catch {
+    // token lacks read:org scope — personal repos only
+  }
 
   const result: ReposResponse = { personal, orgs: orgRepos };
   await redis.set(cacheKey, result, { ex: CACHE_TTL });

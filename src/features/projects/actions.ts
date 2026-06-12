@@ -3,14 +3,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { Plan } from "@prisma/client";
-
-const FREE_PROJECT_LIMIT = 1;
-
-function planLimit(plan: Plan): number {
-  if (plan === Plan.free) return FREE_PROJECT_LIMIT;
-  return Infinity;
-}
+import { triggerAnalysis } from "@/lib/queue/analysis";
+import { checkProjectLimit, checkPrivateRepoAccess, PlanLimitError } from "@/lib/billing/limits";
 
 function slugify(name: string): string {
   return name
@@ -41,16 +35,26 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    select: { id: true, plan: true },
+    select: { id: true },
   });
   if (!user) return { ok: false, error: "unauthorized" };
 
-  // Enforce plan limit
-  const count = await db.project.count({
-    where: { userId: user.id, status: { not: "deleted" } },
-  });
-  if (count >= planLimit(user.plan)) {
-    return { ok: false, error: "plan_limit" };
+  // Enforce plan project limit (server-side)
+  try {
+    await checkProjectLimit(user.id);
+  } catch (e) {
+    if (e instanceof PlanLimitError) return { ok: false, error: "plan_limit" };
+    throw e;
+  }
+
+  // Block private repos on free plan
+  if (input.isPrivate) {
+    try {
+      await checkPrivateRepoAccess(user.id);
+    } catch (e) {
+      if (e instanceof PlanLimitError) return { ok: false, error: "plan_limit" };
+      throw e;
+    }
   }
 
   // Prevent duplicate repo connection
@@ -72,6 +76,7 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
     slug = `${baseSlug}-${suffix++}`;
   }
 
+  let projectId: string;
   try {
     const project = await db.project.create({
       data: {
@@ -90,11 +95,11 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
       select: { id: true },
     });
 
-    // TASK-011: triggerAnalysis(project.id, user.id) — stub until queue is built
-    void project;
-
-    redirect(`/projects/${project.id}/overview`);
+    await triggerAnalysis(project.id, user.id);
+    projectId = project.id;
   } catch {
     return { ok: false, error: "unknown" };
   }
+
+  redirect(`/projects/${projectId}/overview`);
 }

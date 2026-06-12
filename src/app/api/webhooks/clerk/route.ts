@@ -2,6 +2,9 @@ import { env } from "@/env";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
+import { stripe } from "@/lib/stripe/client";
+import { sendEmail } from "@/lib/email";
+import { WelcomeEmail } from "@/emails/WelcomeEmail";
 
 export async function POST(req: Request) {
   const headerPayload = await headers();
@@ -38,13 +41,38 @@ export async function POST(req: Request) {
       return new Response("No primary email", { status: 400 });
     }
 
-    await db.user.create({
+    const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || null;
+    const user = await db.user.create({
       data: {
         clerkId: data.id as string,
         email,
-        name: [data.first_name, data.last_name].filter(Boolean).join(" ") || null,
+        name,
         avatarUrl: (data.image_url as string) || null,
       },
+    });
+
+    // Create Stripe customer eagerly so portal always works
+    if (env.STRIPE_SECRET_KEY) {
+      try {
+        const customer = await stripe.customers.create({
+          email,
+          ...(name ? { name } : {}),
+          metadata: { userId: user.id },
+        });
+        await db.user.update({
+          where: { id: user.id },
+          data: { stripeCustomerId: customer.id },
+        });
+      } catch {
+        // Non-fatal — checkout handler creates customer lazily if needed
+      }
+    }
+
+    // Send welcome email (non-blocking)
+    void sendEmail({
+      to: email,
+      subject: "Welcome to AI CTO — Run your first analysis",
+      react: WelcomeEmail({ name: name ?? email, appUrl: env.NEXT_PUBLIC_APP_URL }),
     });
   }
 

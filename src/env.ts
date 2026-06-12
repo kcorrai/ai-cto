@@ -14,6 +14,8 @@ export const env = createEnv({
     // Billing — Stripe (required from TASK-022)
     STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
     STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+    STRIPE_PRO_MONTHLY_PRICE_ID: z.string().startsWith("price_").optional(),
+    STRIPE_PRO_YEARLY_PRICE_ID: z.string().startsWith("price_").optional(),
 
     // GitHub OAuth
     GITHUB_CLIENT_ID: z.string().min(1),
@@ -31,6 +33,9 @@ export const env = createEnv({
 
     // Storage — Vercel Blob (required from TASK-010)
     BLOB_READ_WRITE_TOKEN: z.string().min(1).optional(),
+
+    // AI — Vercel AI Gateway (required from TASK-012)
+    AI_GATEWAY_API_KEY: z.string().min(1).optional(),
 
     // Email — Resend (required from TASK-025)
     RESEND_API_KEY: z.string().startsWith("re_").optional(),
@@ -51,12 +56,15 @@ export const env = createEnv({
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRO_MONTHLY_PRICE_ID: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+    STRIPE_PRO_YEARLY_PRICE_ID: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
