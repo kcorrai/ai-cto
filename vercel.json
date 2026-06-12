@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "src/app/api/queues/analysis/route.ts": {
-      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "analysis-jobs" }]
-    }
-  }
-}
