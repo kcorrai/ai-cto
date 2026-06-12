@@ -300,7 +300,7 @@ export async function fetchRepository(
       selectedFileCount: 0,
       blobPath,
     };
-    await put(blobPath, JSON.stringify(bundle), { access: "public", addRandomSuffix: false });
+    await put(blobPath, JSON.stringify(bundle), { access: "private", addRandomSuffix: false });
     return bundle;
   }
 
@@ -363,7 +363,7 @@ export async function fetchRepository(
     blobPath,
   };
 
-  await put(blobPath, JSON.stringify(bundle), { access: "public", addRandomSuffix: false });
+  await put(blobPath, JSON.stringify(bundle), { access: "private", addRandomSuffix: false });
 
   return bundle;
 }
