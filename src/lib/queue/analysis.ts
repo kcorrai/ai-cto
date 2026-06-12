@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { type AnalysisTrigger } from "@prisma/client";
 import { checkAnalysisLimit, getModulesForPlan } from "@/lib/billing/limits";
-import { processAnalysis } from "@/lib/analysis/processor";
+import { env } from "@/env";
 import {
   acquireLock,
   releaseLock,
@@ -47,7 +47,20 @@ export async function triggerAnalysis(
       modules: modules as string[],
     };
 
-    void processAnalysis(payload).catch(console.error);
+    // POST to the queue route (maxDuration=300) so the analysis survives after
+    // the server action returns. VERCEL_URL is auto-set per deployment.
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+
+    fetch(`${baseUrl}/api/queues/analysis`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": env.ENCRYPTION_KEY,
+      },
+      body: JSON.stringify(payload),
+    }).catch((err: unknown) => console.error("Failed to queue analysis:", err));
   } catch (error) {
     await releaseLock(projectId);
     throw error;
