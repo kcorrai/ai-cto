@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Lock, Globe, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Repo, ReposResponse } from "@/app/api/github/repos/route";
+import type { Repo, ReposResponse } from "@/lib/github/types";
 
 function timeAgo(dateString: string): string {
   const secs = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);

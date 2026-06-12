@@ -5,7 +5,7 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { RepoBrowser } from "./RepoBrowser";
 import { PlanLimitModal } from "@/components/shared/PlanLimitModal";
 import { createProject } from "@/features/projects/actions";
-import type { Repo } from "@/app/api/github/repos/route";
+import type { Repo } from "@/lib/github/types";
 
 type Step = 1 | 2 | 3;
 

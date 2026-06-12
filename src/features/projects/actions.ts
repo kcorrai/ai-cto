@@ -94,11 +94,16 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
       },
       select: { id: true },
     });
-
-    await triggerAnalysis(project.id, user.id);
     projectId = project.id;
   } catch {
     return { ok: false, error: "unknown" };
+  }
+
+  // Trigger analysis non-fatally — queue may not be available in local dev
+  try {
+    await triggerAnalysis(projectId, user.id);
+  } catch {
+    // Analysis can be triggered from the overview page
   }
 
   redirect(`/projects/${projectId}/overview`);

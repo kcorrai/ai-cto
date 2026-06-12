@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
-import { send } from "@vercel/queue";
 import { type AnalysisTrigger } from "@prisma/client";
 import { checkAnalysisLimit, getModulesForPlan } from "@/lib/billing/limits";
 
@@ -33,12 +32,10 @@ export async function triggerAnalysis(
   userId: string,
   trigger: AnalysisTrigger = "manual"
 ): Promise<string> {
-  // Enforce per-month analysis limit before acquiring lock
   await checkAnalysisLimit(userId);
 
   const key = lockKey(projectId);
 
-  // NX = set only if key doesn't exist; returns "OK" on success, null if already locked
   const acquired = await redis.set(key, "1", { nx: true, ex: LOCK_TTL_SECONDS });
   if (!acquired) {
     throw new AnalysisAlreadyRunningError(projectId);
@@ -46,7 +43,6 @@ export async function triggerAnalysis(
 
   let analysisId: string;
   try {
-    // Determine which modules this user's plan unlocks
     const user = await db.user.findUnique({ where: { id: userId }, select: { plan: true } });
     const modules = getModulesForPlan(user?.plan ?? "free");
 
@@ -68,6 +64,9 @@ export async function triggerAnalysis(
       userId,
       modules: modules as string[],
     };
+
+    // Dynamic import so @vercel/queue doesn't initialize at module load time
+    const { send } = await import("@vercel/queue");
     await send("analysis-jobs", payload, { idempotencyKey: analysisId });
   } catch (error) {
     await releaseLock(projectId);
