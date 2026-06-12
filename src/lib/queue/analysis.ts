@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { db } from "@/lib/db";
 import { type AnalysisTrigger } from "@prisma/client";
 import { checkAnalysisLimit, getModulesForPlan } from "@/lib/billing/limits";
@@ -48,7 +47,7 @@ export async function triggerAnalysis(
       modules: modules as string[],
     };
 
-    after(() => processAnalysis(payload).catch(console.error));
+    void processAnalysis(payload).catch(console.error);
   } catch (error) {
     await releaseLock(projectId);
     throw error;
