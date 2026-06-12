@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 import { db } from "@/lib/db";
 import { env } from "@/env";
 
@@ -17,7 +17,7 @@ export async function POST() {
     return NextResponse.json({ error: "No billing account" }, { status: 400 });
   }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await getStripe().billingPortal.sessions.create({
     customer: user.stripeCustomerId,
     return_url: `${env.NEXT_PUBLIC_APP_URL}/settings`,
   });

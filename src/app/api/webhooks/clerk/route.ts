@@ -2,7 +2,7 @@ import { env } from "@/env";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 import { sendEmail } from "@/lib/email";
 import { WelcomeEmail } from "@/emails/WelcomeEmail";
 
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     // Create Stripe customer eagerly so portal always works
     if (env.STRIPE_SECRET_KEY) {
       try {
-        const customer = await stripe.customers.create({
+        const customer = await getStripe().customers.create({
           email,
           ...(name ? { name } : {}),
           metadata: { userId: user.id },

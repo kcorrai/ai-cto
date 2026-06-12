@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 import { db } from "@/lib/db";
 import { env } from "@/env";
-
-export const config = { api: { bodyParser: false } };
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const { userId, plan } = session.metadata ?? {};
   if (!userId || plan !== "pro") return;
 
-  const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+  const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
   const priceId = sub.items.data[0]?.price.id ?? "";
 
   await db.$transaction(async (tx) => {
@@ -87,7 +85,7 @@ export async function POST(req: Request) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+    event = getStripe().webhooks.constructEvent(rawBody, sig, secret);
   } catch {
     return new NextResponse("Invalid signature", { status: 400 });
   }

@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 import { getProPriceId } from "@/lib/stripe/plans";
 import { db } from "@/lib/db";
 import { env } from "@/env";
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   // Ensure Stripe customer exists
   let customerId = user.stripeCustomerId;
   if (!customerId) {
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: user.email,
       ...(user.name ? { name: user.name } : {}),
       metadata: { userId: user.id },
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const priceId = getProPriceId(interval);
   const appUrl = env.NEXT_PUBLIC_APP_URL;
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],

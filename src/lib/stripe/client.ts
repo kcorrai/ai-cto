@@ -7,7 +7,11 @@ function createStripeClient(): Stripe {
   return new Stripe(key, { apiVersion: "2024-06-20" });
 }
 
-// Singleton — reused across invocations in Fluid Compute
 const globalForStripe = globalThis as unknown as { stripe?: Stripe };
-export const stripe = globalForStripe.stripe ?? createStripeClient();
-if (process.env.NODE_ENV !== "production") globalForStripe.stripe = stripe;
+
+export function getStripe(): Stripe {
+  if (!globalForStripe.stripe) {
+    globalForStripe.stripe = createStripeClient();
+  }
+  return globalForStripe.stripe;
+}
