@@ -474,6 +474,8 @@ model Finding {
   resolvedAt     DateTime? @db.Timestamptz(6)
   resolvedById   String?   @db.Uuid
   assignedToId   String?   @db.Uuid
+  isRegression   Boolean   @default(false)
+  regressionOf   String?   @db.Uuid
   metadata       Json      @default("{}")
   createdAt      DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime  @updatedAt @db.Timestamptz(6)

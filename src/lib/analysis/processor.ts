@@ -277,10 +277,30 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
     }
     const dedupedInserts = [...dedupedMap.values()];
 
+    // Regression detection: check if any new finding matches a previously resolved finding
+    const resolvedFindings = await db.finding.findMany({
+      where: { projectId, isResolved: true },
+      select: { id: true, title: true, filePath: true, severity: true, resolvedAt: true },
+    });
+    const resolvedKeyMap = new Map(
+      resolvedFindings.map((f) => [dedupeKey({ filePath: f.filePath, title: f.title }), f])
+    );
+
+    const insertsWithRegression = dedupedInserts.map((f) => {
+      const resolvedMatch = resolvedKeyMap.get(dedupeKey({ filePath: f.filePath, title: f.title }));
+      return {
+        ...f,
+        isRegression: !!resolvedMatch,
+        regressionOf: resolvedMatch?.id ?? null,
+      };
+    });
+
+    const regressionCount = insertsWithRegression.filter((f) => f.isRegression).length;
+
     await db.$transaction(async (tx) => {
       await tx.finding.deleteMany({ where: { analysisId } });
-      if (dedupedInserts.length > 0) {
-        await tx.finding.createMany({ data: dedupedInserts });
+      if (insertsWithRegression.length > 0) {
+        await tx.finding.createMany({ data: insertsWithRegression });
       }
     });
 
@@ -365,7 +385,7 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
     const emailEnabled = userSettings.emailOnComplete !== false;
     if (userForEmail && emailEnabled) {
       const reportUrl = `${env.NEXT_PUBLIC_APP_URL}/projects/${projectId}/analysis`;
-      const topFindingsForEmail = dedupedInserts
+      const topFindingsForEmail = insertsWithRegression
         .filter((f) => f.severity === "critical" || f.severity === "high")
         .slice(0, 3)
         .map((f) => ({ title: f.title, severity: f.severity as string }));
@@ -378,6 +398,30 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
           score,
           label,
           topFindings: topFindingsForEmail,
+          reportUrl,
+          appUrl: env.NEXT_PUBLIC_APP_URL,
+        }),
+      });
+    }
+    // Regression alert email (fire-and-forget)
+    if (regressionCount > 0 && userForEmail) {
+      const reportUrl = `${env.NEXT_PUBLIC_APP_URL}/projects/${projectId}/analysis`;
+      const regressionTitles = insertsWithRegression
+        .filter((f) => f.isRegression)
+        .slice(0, 3)
+        .map((f) => f.title);
+      void sendEmail({
+        to: userForEmail.email,
+        subject: `Regression detected in ${bundle.repoMetadata.fullName} — ${regressionCount} resolved issue${regressionCount > 1 ? "s" : ""} reappeared`,
+        react: AnalysisCompleteEmail({
+          name: userForEmail.name ?? userForEmail.email,
+          projectName: bundle.repoMetadata.fullName,
+          score,
+          label,
+          topFindings: regressionTitles.map((t) => ({
+            title: `[REGRESSION] ${t}`,
+            severity: "high",
+          })),
           reportUrl,
           appUrl: env.NEXT_PUBLIC_APP_URL,
         }),
@@ -403,9 +447,9 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
           }),
         });
       }
-      const hasCritical = dedupedInserts.some((f) => f.severity === "critical");
+      const hasCritical = insertsWithRegression.some((f) => f.severity === "critical");
       if (hasCritical && slackCfg?.critical_finding !== false) {
-        const critFinding = dedupedInserts.find((f) => f.severity === "critical");
+        const critFinding = insertsWithRegression.find((f) => f.severity === "critical");
         if (critFinding) {
           void sendSlackMessage({
             orgId: projectWithOrg.organizationId,
