@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -261,7 +262,11 @@ export default async function AnalysisPage(props: {
       )}
 
       {/* Findings */}
-      {allFindings.length > 0 && <FindingsList findings={allFindings} />}
+      {allFindings.length > 0 && (
+        <Suspense fallback={<FindingsList findings={allFindings} />}>
+          <FindingsList findings={allFindings} />
+        </Suspense>
+      )}
       {allFindings.length === 0 && latest.modules.length > 0 && (
         <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-8 text-center">
           <p className="text-sm text-[#606060]">No findings — your repository looks clean.</p>
