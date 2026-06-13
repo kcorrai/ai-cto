@@ -13,7 +13,7 @@ export default function CreateTeamPage() {
           </p>
         </div>
         <CreateOrganization
-          afterCreateOrganizationUrl="/team"
+          afterCreateOrganizationUrl="/team/onboarding"
           skipInvitationScreen={false}
           appearance={{
             elements: {
