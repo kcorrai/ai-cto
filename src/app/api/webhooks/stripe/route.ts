@@ -6,11 +6,41 @@ import { env } from "@/env";
 import { creditReferrer } from "@/lib/referral";
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const { userId, plan } = session.metadata ?? {};
-  if (!userId || plan !== "pro") return;
+  const { userId, organizationId, plan } = session.metadata ?? {};
+  if (!plan || (plan !== "pro" && plan !== "team")) return;
 
   const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
   const priceId = sub.items.data[0]?.price.id ?? "";
+
+  if (organizationId) {
+    await db.$transaction(async (tx) => {
+      await tx.subscription.upsert({
+        where: { stripeSubscriptionId: sub.id },
+        create: {
+          organizationId,
+          stripeSubscriptionId: sub.id,
+          stripePriceId: priceId,
+          status: sub.status as never,
+          plan: "team",
+          currentPeriodStart: new Date(sub.current_period_start * 1000),
+          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+          cancelAtPeriodEnd: sub.cancel_at_period_end,
+        },
+        update: {
+          status: sub.status as never,
+          currentPeriodStart: new Date(sub.current_period_start * 1000),
+          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+          cancelAtPeriodEnd: sub.cancel_at_period_end,
+        },
+      });
+      await tx.organization.update({ where: { id: organizationId }, data: { plan: "team" } });
+    });
+    return;
+  }
+
+  if (!userId || plan !== "pro") return;
 
   await db.$transaction(async (tx) => {
     await tx.subscription.upsert({

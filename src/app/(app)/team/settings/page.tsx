@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { SlackSettings } from "@/components/team/SlackSettings";
 import { WebhookManager } from "@/components/team/WebhookManager";
+import { TeamBilling } from "@/components/team/TeamBilling";
 
 type SlackConfig = {
   analysis_complete: boolean;
@@ -19,6 +20,8 @@ export default async function TeamSettingsPage() {
     where: { clerkOrgId: orgId, deletedAt: null },
     select: {
       id: true,
+      plan: true,
+      stripeCustomerId: true,
       slackTeamId: true,
       slackChannelName: true,
       slackConfig: true,
@@ -55,6 +58,7 @@ export default async function TeamSettingsPage() {
       </div>
 
       <div className="max-w-2xl space-y-6">
+        <TeamBilling plan={org.plan} hasStripeCustomer={!!org.stripeCustomerId} />
         <SlackSettings connected={connected} channelName={org.slackChannelName} config={config} />
         <WebhookManager initial={webhooks} />
       </div>
