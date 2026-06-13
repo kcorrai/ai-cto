@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, EyeOff, Eye } from "lucide-react";
 import { FindingCard } from "./FindingCard";
 import type { FindingCardData } from "./FindingCard";
+import { LinearPushButton } from "./LinearPushButton";
 
 type Severity = "critical" | "high" | "medium" | "low" | "info";
 type Filter = "all" | Severity;
@@ -35,7 +36,19 @@ const MODULE_NAMES: Record<string, string> = {
 
 type ModuleGroup = { module: string; findings: FlatFinding[] };
 
-function ModuleSection({ group }: { group: ModuleGroup }) {
+function ModuleSection({
+  group,
+  readonly,
+  selected,
+  onToggleSelect,
+  isLinearConnected,
+}: {
+  group: ModuleGroup;
+  readonly?: boolean;
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  isLinearConnected?: boolean;
+}) {
   const [open, setOpen] = useState(true);
   const name = MODULE_NAMES[group.module] ?? group.module;
 
@@ -58,7 +71,14 @@ function ModuleSection({ group }: { group: ModuleGroup }) {
       {open && (
         <div className="mb-6 space-y-2">
           {group.findings.map((f) => (
-            <FindingCard key={f.id} finding={f} />
+            <FindingCard
+              key={f.id}
+              finding={f}
+              readonly={readonly ?? false}
+              selected={selected.has(f.id)}
+              isLinearConnected={isLinearConnected ?? false}
+              {...(!readonly && { onToggleSelect })}
+            />
           ))}
         </div>
       )}
@@ -66,17 +86,48 @@ function ModuleSection({ group }: { group: ModuleGroup }) {
   );
 }
 
-export function FindingsList({ findings }: { findings: FlatFinding[] }) {
+async function bulkResolve(ids: string[]): Promise<void> {
+  const res = await fetch("/api/findings/bulk-resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error("Failed to resolve findings");
+}
+
+export function FindingsList({
+  findings: initialFindings,
+  readonly,
+  isLinearConnected = false,
+}: {
+  findings: FlatFinding[];
+  readonly?: boolean;
+  isLinearConnected?: boolean;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
+  const [hideResolved, setHideResolved] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [findings, setFindings] = useState<FlatFinding[]>(initialFindings);
+  const [resolving, setResolving] = useState(false);
 
-  const filtered = filter === "all" ? findings : findings.filter((f) => f.severity === filter);
-
-  const counts: Partial<Record<Filter, number>> = { all: findings.length };
-  for (const sev of ["critical", "high", "medium", "low", "info"] as Severity[]) {
-    counts[sev] = findings.filter((f) => f.severity === sev).length;
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
-  // Group by module, preserving order of first appearance
+  const afterHide = hideResolved ? findings.filter((f) => !f.isResolved) : findings;
+  const filtered = filter === "all" ? afterHide : afterHide.filter((f) => f.severity === filter);
+
+  const counts: Partial<Record<Filter, number>> = { all: afterHide.length };
+  for (const sev of ["critical", "high", "medium", "low", "info"] as Severity[]) {
+    counts[sev] = afterHide.filter((f) => f.severity === sev).length;
+  }
+
+  // Group by module
   const groups: ModuleGroup[] = [];
   const seen = new Map<string, ModuleGroup>();
   for (const f of filtered) {
@@ -88,11 +139,76 @@ export function FindingsList({ findings }: { findings: FlatFinding[] }) {
     seen.get(f.module)!.findings.push(f);
   }
 
+  const visibleUnresolvedIds = filtered.filter((f) => !f.isResolved).map((f) => f.id);
+  const selectedAndVisible = [...selected].filter((id) => visibleUnresolvedIds.includes(id));
+
+  function selectAll() {
+    setSelected(new Set(visibleUnresolvedIds));
+  }
+  function deselectAll() {
+    setSelected(new Set());
+  }
+
+  async function handleBulkResolve() {
+    if (selectedAndVisible.length === 0 || resolving) return;
+    setResolving(true);
+    try {
+      await bulkResolve(selectedAndVisible);
+      setFindings((prev) =>
+        prev.map((f) => (selectedAndVisible.includes(f.id) ? { ...f, isResolved: true } : f))
+      );
+      setSelected(new Set());
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  const resolvedCount = findings.filter((f) => f.isResolved).length;
+
   return (
     <section>
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#606060]">
-        Findings
-      </h2>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 className="flex-1 text-xs font-semibold uppercase tracking-wider text-[#606060]">
+          Findings
+        </h2>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {!readonly && selectedAndVisible.length > 0 && (
+            <>
+              <button
+                onClick={() => void handleBulkResolve()}
+                disabled={resolving}
+                className="rounded-md border border-[#22c55e]/30 bg-[#111111] px-3 py-1 text-xs font-medium text-[#22c55e] transition-colors hover:border-[#22c55e]/60 disabled:opacity-50"
+              >
+                {resolving ? "Resolving…" : `Resolve selected (${selectedAndVisible.length})`}
+              </button>
+              <LinearPushButton
+                findingIds={selectedAndVisible}
+                isLinearConnected={isLinearConnected}
+              />
+            </>
+          )}
+          {!readonly && selectedAndVisible.length > 0 ? (
+            <button onClick={deselectAll} className="text-xs text-[#606060] hover:text-[#a0a0a0]">
+              Deselect all
+            </button>
+          ) : !readonly && visibleUnresolvedIds.length > 0 ? (
+            <button onClick={selectAll} className="text-xs text-[#606060] hover:text-[#a0a0a0]">
+              Select all
+            </button>
+          ) : null}
+          {resolvedCount > 0 && (
+            <button
+              onClick={() => setHideResolved((h) => !h)}
+              className="flex items-center gap-1 text-xs text-[#606060] hover:text-[#a0a0a0]"
+              title={hideResolved ? "Show resolved" : "Hide resolved"}
+            >
+              {hideResolved ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              {hideResolved ? "Show resolved" : "Hide resolved"}
+              {!hideResolved && <span className="ml-0.5 text-[#404040]">({resolvedCount})</span>}
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="mb-5 flex flex-wrap gap-1">
         {FILTER_TABS.map(({ key, label }) => {
@@ -117,11 +233,22 @@ export function FindingsList({ findings }: { findings: FlatFinding[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[#606060]">No findings match this filter.</p>
+        <p className="py-8 text-center text-sm text-[#606060]">
+          {hideResolved && findings.filter((f) => f.isResolved).length > 0
+            ? "All visible findings are resolved."
+            : "No findings match this filter."}
+        </p>
       ) : (
         <div>
           {groups.map((g) => (
-            <ModuleSection key={g.module} group={g} />
+            <ModuleSection
+              key={g.module}
+              group={g}
+              readonly={readonly ?? false}
+              selected={selected}
+              onToggleSelect={toggleSelect}
+              isLinearConnected={isLinearConnected}
+            />
           ))}
         </div>
       )}

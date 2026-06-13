@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getPromptVariant } from "@/lib/ai/ab-testing";
 import { generateAnalysis } from "@/lib/ai/gateway";
 import {
   buildProductReadinessSystemPrompt,
@@ -70,7 +71,11 @@ export async function runProductReadinessModule(bundle: RepoBundle): Promise<{ s
         status: "complete",
         score: object.score,
         findings: validatedFindings,
-        rawOutput: { ...object, findings: validatedFindings },
+        rawOutput: {
+          ...object,
+          findings: validatedFindings,
+          promptVariant: getPromptVariant("product_readiness"),
+        },
         tokenCount: inputTokens + outputTokens,
         durationMs,
       },

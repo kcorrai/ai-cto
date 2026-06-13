@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getPromptVariant } from "@/lib/ai/ab-testing";
 import { generateAnalysis } from "@/lib/ai/gateway";
 import { buildSecuritySystemPrompt, buildSecurityUserPrompt } from "@/lib/ai/prompts/security";
 import { findingSchema } from "@/lib/ai/schemas";
@@ -63,7 +64,11 @@ export async function runSecurityModule(bundle: RepoBundle): Promise<{ score: nu
         status: "complete",
         score: object.score,
         findings: validatedFindings,
-        rawOutput: { ...object, findings: validatedFindings },
+        rawOutput: {
+          ...object,
+          findings: validatedFindings,
+          promptVariant: getPromptVariant("security"),
+        },
         tokenCount: inputTokens + outputTokens,
         durationMs,
       },

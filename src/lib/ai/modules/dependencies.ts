@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getPromptVariant } from "@/lib/ai/ab-testing";
 import { generateAnalysis } from "@/lib/ai/gateway";
 import {
   buildDependenciesSystemPrompt,
@@ -66,7 +67,11 @@ export async function runDependenciesModule(bundle: RepoBundle): Promise<{ score
         status: "complete",
         score: object.score,
         findings: validatedFindings,
-        rawOutput: { ...object, findings: validatedFindings },
+        rawOutput: {
+          ...object,
+          findings: validatedFindings,
+          promptVariant: getPromptVariant("dependencies"),
+        },
         tokenCount: inputTokens + outputTokens,
         durationMs,
       },

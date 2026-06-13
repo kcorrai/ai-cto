@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   BarChart3,
@@ -8,10 +9,12 @@ import {
   CheckCircle,
   FileBarChart,
   Github,
+  Quote,
   Shield,
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "AI CTO — Your AI Technical Co-Founder",
@@ -133,7 +136,14 @@ const plans = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const testimonials = await db.testimonial.findMany({
+    where: { status: "approved" },
+    select: { id: true, name: true, role: true, productName: true, avatarUrl: true, quote: true },
+    orderBy: { approvedAt: "desc" },
+    take: 12,
+  });
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0]">
       {/* Nav */}
@@ -370,6 +380,55 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
+
+      {/* Testimonials wall */}
+      {testimonials.length > 0 && (
+        <section className="border-y border-[#1f1f1f] bg-[#0d0d0d] py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-[#606060]">
+              Wall of love
+            </p>
+            <h2 className="mb-12 text-center text-3xl font-semibold tracking-tight text-[#f0f0f0]">
+              Trusted by builders worldwide
+            </h2>
+            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+              {testimonials.map((t) => (
+                <div
+                  key={t.id}
+                  className="mb-4 break-inside-avoid rounded-xl border border-[#2a2a2a] bg-[#111111] p-5"
+                >
+                  <Quote className="mb-3 h-4 w-4 text-[#3b82f6]" />
+                  <p className="mb-4 text-sm leading-relaxed text-[#a0a0a0]">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div className="flex items-center gap-3">
+                    {t.avatarUrl ? (
+                      <Image
+                        src={t.avatarUrl}
+                        alt={t.name}
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f1f1f] text-xs font-medium text-[#606060]">
+                        {t.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-medium text-[#f0f0f0]">{t.name}</p>
+                      {(t.role ?? t.productName) && (
+                        <p className="text-[10px] text-[#606060]">{t.role ?? t.productName}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-[#1f1f1f] py-12">

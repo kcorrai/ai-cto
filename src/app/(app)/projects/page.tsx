@@ -4,6 +4,23 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Plus, FolderKanban } from "lucide-react";
 
+function scoreColor(score: number): string {
+  if (score >= 80) return "#22c55e";
+  if (score >= 65) return "#3b82f6";
+  if (score >= 50) return "#f59e0b";
+  if (score >= 35) return "#f97316";
+  return "#ef4444";
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  complete: "Ready",
+  failed: "Failed",
+  queued: "Queued",
+  fetching: "Fetching",
+  analyzing: "Analyzing",
+  synthesizing: "Synthesizing",
+};
+
 export default async function ProjectsPage() {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
@@ -71,11 +88,22 @@ export default async function ProjectsPage() {
                     {p.githubOwner}/{p.githubRepo}
                   </p>
                 </div>
-                {latest?.score != null && (
-                  <span className="text-2xl font-bold tabular-nums text-[#3b82f6]">
-                    {latest.score}
-                  </span>
-                )}
+                <div className="shrink-0 text-right">
+                  {latest?.score != null ? (
+                    <span
+                      className="text-2xl font-semibold tabular-nums"
+                      style={{ color: scoreColor(latest.score) }}
+                    >
+                      {latest.score}
+                    </span>
+                  ) : latest?.status && latest.status !== "complete" ? (
+                    <span className="text-xs text-[#3b82f6]">
+                      {STATUS_LABEL[latest.status] ?? latest.status}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-[#404040]">No analysis</span>
+                  )}
+                </div>
               </Link>
             );
           })}

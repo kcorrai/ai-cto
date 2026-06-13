@@ -25,6 +25,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex items-center gap-4">
             <Link
+              href="/leaderboard"
+              className="text-sm text-[#a0a0a0] transition-colors hover:text-[#f0f0f0]"
+            >
+              Leaderboard
+            </Link>
+            <Link
               href="/pricing"
               className="text-sm text-[#a0a0a0] transition-colors hover:text-[#f0f0f0]"
             >
@@ -65,8 +71,18 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 </p>
                 <ul className="space-y-2.5 text-sm text-[#a0a0a0]">
                   <li>
+                    <Link href="/leaderboard" className="hover:text-[#f0f0f0]">
+                      Leaderboard
+                    </Link>
+                  </li>
+                  <li>
                     <Link href="/pricing" className="hover:text-[#f0f0f0]">
                       Pricing
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/docs/api" className="hover:text-[#f0f0f0]">
+                      API Docs
                     </Link>
                   </li>
                   <li>

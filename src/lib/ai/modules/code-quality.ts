@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getPromptVariant } from "@/lib/ai/ab-testing";
 import { generateAnalysis } from "@/lib/ai/gateway";
 import {
   buildCodeQualitySystemPrompt,
@@ -66,7 +67,11 @@ export async function runCodeQualityModule(bundle: RepoBundle): Promise<{ score:
         status: "complete",
         score: object.score,
         findings: validatedFindings,
-        rawOutput: { ...object, findings: validatedFindings },
+        rawOutput: {
+          ...object,
+          findings: validatedFindings,
+          promptVariant: getPromptVariant("code_quality"),
+        },
         tokenCount: inputTokens + outputTokens,
         durationMs,
       },

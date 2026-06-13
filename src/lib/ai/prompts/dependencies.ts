@@ -1,6 +1,7 @@
 // v1 — 2026-06-12
 
 import type { RepoBundle } from "@/lib/github/fetcher";
+import { buildFrameworkContext } from "./shared";
 
 // Manifest files to include at full content
 const MANIFEST_PATTERNS = [
@@ -105,6 +106,7 @@ Score conservatively (around 50) and note the absence of detectable manifests as
 ## Repository
 Name: ${repoMetadata.fullName}
 Primary language: ${repoMetadata.language ?? "Unknown"}
+${buildFrameworkContext(bundle)}
 Total files in repo: ${totalFilesInRepo}
 
 ## Dependency Manifests

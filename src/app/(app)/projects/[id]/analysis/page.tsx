@@ -6,6 +6,16 @@ import { ScoreDisplay } from "@/features/analyses/components/ScoreDisplay";
 import { ModuleGrid } from "@/features/analyses/components/ModuleGrid";
 import { FindingsList } from "@/features/analyses/components/FindingsList";
 import { ExecutiveSummary } from "@/features/analyses/components/ExecutiveSummary";
+import { ReAnalyzeButton } from "@/features/analyses/components/ReAnalyzeButton";
+import { ShareButton } from "@/features/analyses/components/ShareButton";
+import { TestimonialPrompt } from "@/features/analyses/components/TestimonialPrompt";
+import { env } from "@/env";
+import { CompetitorAnalysis } from "@/features/analyses/components/CompetitorAnalysis";
+import { LaunchReadiness } from "@/features/analyses/components/LaunchReadiness";
+import { TechnicalDebt } from "@/features/analyses/components/TechnicalDebt";
+import { RefactorPlan } from "@/features/analyses/components/RefactorPlan";
+import { GrowthAdvisor } from "@/features/analyses/components/GrowthAdvisor";
+import { MonetizationAdvisor } from "@/features/analyses/components/MonetizationAdvisor";
 import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Analysis — AI CTO" };
 
@@ -18,14 +28,18 @@ const SEVERITY_ORDER: Record<string, number> = {
   info: 4,
 };
 
-export default async function AnalysisPage(props: { params: Promise<{ id: string }> }) {
+export default async function AnalysisPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ analysisId?: string }>;
+}) {
   const { id } = await props.params;
+  const { analysisId: requestedAnalysisId } = await props.searchParams;
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
 
   const user = await db.user.findUnique({
     where: { clerkId },
-    select: { id: true },
+    select: { id: true, name: true, email: true },
   });
   if (!user) redirect("/sign-in");
 
@@ -35,8 +49,12 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
   });
   if (!project) notFound();
 
+  const analysisWhere = requestedAnalysisId
+    ? { id: requestedAnalysisId, projectId: project.id }
+    : { projectId: project.id };
+
   const latest = await db.analysis.findFirst({
-    where: { projectId: project.id },
+    where: analysisWhere,
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -99,6 +117,58 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
   const label = (breakdown?.label as string | undefined) ?? "Pre-Alpha";
   const score = latest.score ?? 0;
 
+  // Fetch full analysis record for metadata (competitor analysis)
+  const latestFull = await db.analysis.findUnique({
+    where: { id: latest.id },
+    select: { metadata: true },
+  });
+  type CompetitorStored = {
+    generatedAt: string;
+    inferredCategory: string;
+    competitors: string[];
+    gaps: unknown[];
+    presentFeatures: string[];
+    disclaimer: string;
+  };
+  type MetaStored = {
+    competitorAnalysis?: CompetitorStored;
+    launchReadiness?: unknown;
+    technicalDebt?: unknown;
+    refactorPlan?: unknown;
+    growthAdvisor?: unknown;
+    monetizationAdvisor?: unknown;
+  };
+  const meta = latestFull?.metadata as MetaStored | null;
+  const competitorResult = meta?.competitorAnalysis ?? null;
+  type LaunchStored = {
+    generatedAt: string;
+    launchScore: number;
+    verdict: "launch-ready" | "not-ready";
+    verdictReason: string;
+    totalBlockingDays: number;
+    issues: unknown[];
+    passedChecks: string[];
+  };
+  const launchResult = (meta?.launchReadiness as LaunchStored | undefined) ?? null;
+  type TechDebtStored = {
+    generatedAt: string;
+    totalEstimateDaysMin: number;
+    totalEstimateDaysMax: number;
+    aggregateVelocityTax: number;
+    headline: string;
+    items: unknown[];
+  };
+  const techDebtResult = (meta?.technicalDebt as TechDebtStored | undefined) ?? null;
+  type RefactorStored = { generatedAt: string; opportunities: unknown[] };
+  const refactorResult = (meta?.refactorPlan as RefactorStored | undefined) ?? null;
+  const growthResult =
+    (meta?.growthAdvisor as ({ generatedAt: string } & Record<string, unknown>) | undefined) ??
+    null;
+  const monetizationResult =
+    (meta?.monetizationAdvisor as
+      | ({ generatedAt: string } & Record<string, unknown>)
+      | undefined) ?? null;
+
   const findingRecords = await db.finding.findMany({
     where: { analysisId: latest.id },
     select: {
@@ -112,6 +182,7 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
       effort: true,
       impact: true,
       isResolved: true,
+      metadata: true,
     },
   });
   const allFindings = findingRecords
@@ -129,7 +200,17 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-widest text-[#606060]">Analysis Report</p>
+          {requestedAnalysisId && (
+            <Link
+              href={`/projects/${project.id}/history`}
+              className="mb-2 inline-flex items-center gap-1 text-xs text-[#606060] hover:text-[#a0a0a0]"
+            >
+              ← Back to history
+            </Link>
+          )}
+          <p className="text-[11px] uppercase tracking-widest text-[#606060]">
+            {requestedAnalysisId ? "Historical Analysis" : "Analysis Report"}
+          </p>
           <h1 className="mt-1 text-xl font-semibold text-[#f0f0f0]">
             {project.githubOwner}/{project.githubRepo}
           </h1>
@@ -144,12 +225,17 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
             </p>
           )}
         </div>
-        <Link
-          href={`/projects/${project.id}/overview`}
-          className="rounded-md border border-[#2a2a2a] bg-[#111111] px-3 py-1.5 text-xs text-[#a0a0a0] transition-colors hover:border-[#404040] hover:text-[#f0f0f0]"
-        >
-          Re-analyze
-        </Link>
+        {!requestedAnalysisId && (
+          <div className="flex items-center gap-2">
+            <ShareButton
+              projectName={`${project.githubOwner}/${project.githubRepo}`}
+              score={score}
+              findingsCount={allFindings.filter((f) => !f.isResolved).length}
+              shareUrl={`${env.NEXT_PUBLIC_APP_URL}/projects/${project.id}/analysis`}
+            />
+            <ReAnalyzeButton projectId={project.id} />
+          </div>
+        )}
       </div>
 
       {/* Score + Executive Summary */}
@@ -169,7 +255,7 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
       {/* Module Grid */}
       {latest.modules.length > 0 && (
         <div className="mb-6">
-          <ModuleGrid modules={latest.modules} />
+          <ModuleGrid modules={latest.modules} findings={allFindings} projectId={project.id} />
         </div>
       )}
 
@@ -178,6 +264,48 @@ export default async function AnalysisPage(props: { params: Promise<{ id: string
       {allFindings.length === 0 && latest.modules.length > 0 && (
         <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-8 text-center">
           <p className="text-sm text-[#606060]">No findings — your repository looks clean.</p>
+        </div>
+      )}
+
+      {/* Optional on-demand AI modules */}
+      <div className="mt-6 space-y-3">
+        <LaunchReadiness
+          analysisId={latest.id}
+          initialResult={launchResult as Parameters<typeof LaunchReadiness>[0]["initialResult"]}
+        />
+        <TechnicalDebt
+          analysisId={latest.id}
+          initialResult={techDebtResult as Parameters<typeof TechnicalDebt>[0]["initialResult"]}
+        />
+        <RefactorPlan
+          analysisId={latest.id}
+          initialResult={refactorResult as Parameters<typeof RefactorPlan>[0]["initialResult"]}
+        />
+        <GrowthAdvisor
+          analysisId={latest.id}
+          initialResult={growthResult as Parameters<typeof GrowthAdvisor>[0]["initialResult"]}
+        />
+        <MonetizationAdvisor
+          analysisId={latest.id}
+          initialResult={
+            monetizationResult as Parameters<typeof MonetizationAdvisor>[0]["initialResult"]
+          }
+        />
+        <CompetitorAnalysis
+          analysisId={latest.id}
+          initialResult={
+            competitorResult as Parameters<typeof CompetitorAnalysis>[0]["initialResult"]
+          }
+        />
+      </div>
+
+      {/* Testimonial prompt — shown after completed analysis */}
+      {!requestedAnalysisId && (
+        <div className="mt-6">
+          <TestimonialPrompt
+            userName={user?.name ?? user?.email ?? ""}
+            projectName={`${project.githubOwner}/${project.githubRepo}`}
+          />
         </div>
       )}
     </div>

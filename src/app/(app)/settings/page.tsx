@@ -6,7 +6,11 @@ import { GitHubConnectButton } from "@/components/settings/GitHubConnectButton";
 import { SettingsNotifications } from "@/features/settings/components/SettingsNotifications";
 import { SettingsBilling } from "@/features/settings/components/SettingsBilling";
 import { SettingsDangerZone } from "@/features/settings/components/SettingsDangerZone";
+import { SettingsApiKeys } from "@/features/settings/components/SettingsApiKeys";
 import { getPlanLimits } from "@/lib/billing/limits";
+import { isGitHubAppEnabled } from "@/lib/github/app";
+import { ensureReferralCode, getReferralStats } from "@/lib/referral";
+import { SettingsReferral } from "@/features/settings/components/SettingsReferral";
 
 export const metadata: Metadata = { title: "Settings — AI CTO" };
 
@@ -47,6 +51,7 @@ export default async function SettingsPage() {
         stripeCustomerId: true,
         githubAccessToken: true,
         githubUsername: true,
+        githubInstallationId: true,
         settings: true,
       },
     }),
@@ -54,8 +59,12 @@ export default async function SettingsPage() {
 
   if (!dbUser) redirect("/sign-in");
 
-  const isGitHubConnected = !!dbUser.githubAccessToken;
+  const hasAppInstallation = !!dbUser.githubInstallationId;
+  const isGitHubConnected = !!dbUser.githubAccessToken || hasAppInstallation;
+  const useGitHubApp = isGitHubAppEnabled();
   const userSettings = (dbUser.settings as Record<string, unknown>) ?? {};
+  const isLinearConnected = !!userSettings.linearAccessToken;
+  const linearUserName = userSettings.linearUserName as string | undefined;
   const emailOnComplete = Boolean(userSettings.emailOnComplete ?? true);
   const weeklyDigest = Boolean(userSettings.weeklyDigest ?? false);
   const isPro = dbUser.plan !== "free";
@@ -64,6 +73,26 @@ export default async function SettingsPage() {
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
+
+  const apiKeys = await db.apiKey.findMany({
+    where: { userId: dbUser.id, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      keyPrefix: true,
+      scopes: true,
+      lastUsedAt: true,
+      expiresAt: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const [referralCode, referralStats] = await Promise.all([
+    ensureReferralCode(dbUser.id),
+    getReferralStats(dbUser.id),
+  ]);
+  const referralLink = `${process.env.NEXT_PUBLIC_APP_URL}/r/${referralCode}`;
 
   const analysesThisMonth = await db.analysis.count({
     where: {
@@ -137,7 +166,52 @@ export default async function SettingsPage() {
                 </div>
               )}
             </div>
-            <GitHubConnectButton isConnected={isGitHubConnected} />
+            <GitHubConnectButton
+              isConnected={isGitHubConnected}
+              hasAppInstallation={hasAppInstallation}
+              useGitHubApp={useGitHubApp}
+            />
+          </div>
+        </Section>
+
+        {/* Linear integration */}
+        <Section
+          title="Linear Integration"
+          description="Connect Linear to push findings as issues directly from AI CTO."
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              {isLinearConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
+                  <span className="text-sm text-[#a0a0a0]">
+                    {linearUserName ? `Connected as ${linearUserName}` : "Linear connected"}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#606060]" />
+                  <span className="text-sm text-[#606060]">Not connected</span>
+                </div>
+              )}
+            </div>
+            {isLinearConnected ? (
+              <form action="/api/integrations/linear" method="post" onSubmit={undefined}>
+                <a
+                  href="/api/integrations/linear"
+                  className="rounded-md border border-[#2a2a2a] px-3 py-1.5 text-xs text-[#a0a0a0] transition-colors hover:border-[#ef4444]/40 hover:text-[#ef4444]"
+                >
+                  Disconnect
+                </a>
+              </form>
+            ) : (
+              <a
+                href="/api/integrations/linear"
+                className="rounded-md border border-[#2a2a2a] px-3 py-1.5 text-xs text-[#a0a0a0] transition-colors hover:border-[#404040] hover:text-[#f0f0f0]"
+              >
+                Connect Linear
+              </a>
+            )}
           </div>
         </Section>
 
@@ -157,6 +231,35 @@ export default async function SettingsPage() {
             analysesThisMonth={analysesThisMonth}
             maxAnalysesPerMonth={limits.maxAnalysesPerMonth}
             hasStripeCustomer={!!dbUser.stripeCustomerId}
+          />
+        </Section>
+
+        {/* API Keys */}
+        <Section
+          title="API Keys"
+          description="Authenticate programmatic API access. Available on Pro and higher plans."
+        >
+          <SettingsApiKeys
+            initialKeys={apiKeys.map((k) => ({
+              ...k,
+              lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+              expiresAt: k.expiresAt?.toISOString() ?? null,
+              createdAt: k.createdAt.toISOString(),
+            }))}
+            isPro={isPro}
+          />
+        </Section>
+
+        {/* Referral Program */}
+        <Section
+          title="Referral Program"
+          description="Invite friends and earn $10 credit when they convert to Pro."
+        >
+          <SettingsReferral
+            referralLink={referralLink}
+            totalReferrals={referralStats.totalReferrals}
+            conversions={referralStats.conversions}
+            totalCredits={referralStats.totalCredits}
           />
         </Section>
 

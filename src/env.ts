@@ -17,9 +17,17 @@ export const env = createEnv({
     STRIPE_PRO_MONTHLY_PRICE_ID: z.string().startsWith("price_").optional(),
     STRIPE_PRO_YEARLY_PRICE_ID: z.string().startsWith("price_").optional(),
 
-    // GitHub OAuth
+    // GitHub OAuth (legacy — used as fallback when App not installed)
     GITHUB_CLIENT_ID: z.string().min(1),
     GITHUB_CLIENT_SECRET: z.string().min(1),
+
+    // GitHub App (preferred — higher rate limits, installation tokens)
+    GITHUB_APP_ID: z.string().min(1).optional(),
+    GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(), // PEM key, newlines as \n
+    GITHUB_APP_CLIENT_ID: z.string().min(1).optional(),
+    GITHUB_APP_CLIENT_SECRET: z.string().min(1).optional(),
+    GITHUB_APP_WEBHOOK_SECRET: z.string().min(1).optional(),
+    GITHUB_APP_SLUG: z.string().min(1).optional(), // e.g. "ai-cto-app"
 
     // GitHub token encryption (AES-256-GCM) — must be 64-char hex (32 bytes)
     ENCRYPTION_KEY: z
@@ -39,6 +47,10 @@ export const env = createEnv({
 
     // Email — Resend (required from TASK-025)
     RESEND_API_KEY: z.string().startsWith("re_").optional(),
+
+    // Linear integration (optional)
+    LINEAR_CLIENT_ID: z.string().min(1).optional(),
+    LINEAR_CLIENT_SECRET: z.string().min(1).optional(),
   },
 
   client: {
@@ -60,12 +72,20 @@ export const env = createEnv({
     STRIPE_PRO_YEARLY_PRICE_ID: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
+    GITHUB_APP_ID: process.env.GITHUB_APP_ID,
+    GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
+    GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,
+    GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
+    GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
     AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    LINEAR_CLIENT_ID: process.env.LINEAR_CLIENT_ID,
+    LINEAR_CLIENT_SECRET: process.env.LINEAR_CLIENT_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   },

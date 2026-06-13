@@ -5,6 +5,7 @@ import { put } from "@vercel/blob";
 
 const MAX_FILES = 100;
 const MAX_FILE_SIZE = 50 * 1024; // 50KB
+const MIN_TEST_FILES = 8; // guaranteed test file slots
 
 const BINARY_EXTENSIONS = new Set([
   ".png",
@@ -53,6 +54,19 @@ const BINARY_EXTENSIONS = new Set([
   ".war",
 ]);
 
+// Lockfiles are large and carry no signal for code analysis
+const LOCKFILES = new Set([
+  "package-lock.json",
+  "yarn.lock",
+  "pnpm-lock.yaml",
+  "composer.lock",
+  "gemfile.lock",
+  "poetry.lock",
+  "cargo.lock",
+  "go.sum",
+  "packages.lock.json",
+]);
+
 const SKIP_DIRS = new Set([
   "node_modules",
   ".git",
@@ -94,7 +108,41 @@ export type RepoBundle = {
   totalFilesInRepo: number;
   selectedFileCount: number;
   blobPath: string;
+  frameworkHints: string[];
 };
+
+function detectFrameworks(paths: string[]): string[] {
+  const hints: string[] = [];
+  const pathSet = new Set(paths.map((p) => p.toLowerCase()));
+  const has = (fragment: string) => [...pathSet].some((p) => p.includes(fragment));
+
+  if (
+    pathSet.has("next.config.ts") ||
+    pathSet.has("next.config.js") ||
+    pathSet.has("next.config.mjs")
+  )
+    hints.push("next.js");
+  if (pathSet.has("nuxt.config.ts") || pathSet.has("nuxt.config.js")) hints.push("nuxt");
+  if (pathSet.has("svelte.config.js") || pathSet.has("svelte.config.ts")) hints.push("sveltekit");
+  if (pathSet.has("remix.config.js") || has("/app/routes/")) hints.push("remix");
+  if (pathSet.has("astro.config.mjs") || pathSet.has("astro.config.ts")) hints.push("astro");
+  if (pathSet.has("vite.config.ts") || pathSet.has("vite.config.js")) hints.push("vite");
+  if (pathSet.has("schema.prisma") || has("prisma/schema")) hints.push("prisma");
+  if (has("drizzle.config")) hints.push("drizzle");
+  if (
+    pathSet.has("docker-compose.yml") ||
+    pathSet.has("docker-compose.yaml") ||
+    pathSet.has("dockerfile")
+  )
+    hints.push("docker");
+  if (has(".github/workflows/")) hints.push("github-actions");
+  if (pathSet.has("go.mod")) hints.push("go");
+  if (pathSet.has("cargo.toml")) hints.push("rust");
+  if (pathSet.has("pyproject.toml") || pathSet.has("requirements.txt")) hints.push("python");
+  if (pathSet.has("gemfile")) hints.push("ruby");
+
+  return hints;
+}
 
 function getExtension(path: string): string {
   const lastDot = path.lastIndexOf(".");
@@ -105,6 +153,11 @@ function getExtension(path: string): string {
 
 function isBinary(path: string): boolean {
   return BINARY_EXTENSIONS.has(getExtension(path));
+}
+
+function isLockfile(path: string): boolean {
+  const filename = path.split("/").pop()?.toLowerCase() ?? "";
+  return LOCKFILES.has(filename);
 }
 
 function isInSkippedDir(path: string): boolean {
@@ -299,6 +352,7 @@ export async function fetchRepository(
       totalFilesInRepo: 0,
       selectedFileCount: 0,
       blobPath,
+      frameworkHints: [],
     };
     await put(blobPath, JSON.stringify(bundle), { access: "private", addRandomSuffix: false });
     return bundle;
@@ -309,14 +363,46 @@ export async function fetchRepository(
     (f) =>
       f.path != null &&
       !isBinary(f.path) &&
+      !isLockfile(f.path) &&
       !isInSkippedDir(f.path) &&
       (f.size ?? 0) <= MAX_FILE_SIZE
   );
 
-  const selected = candidates
+  const scored = candidates
     .map((f) => ({ path: f.path!, size: f.size ?? 0, score: scoreFile(f.path!) }))
-    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
-    .slice(0, MAX_FILES);
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+
+  // Separate test files so we can guarantee a minimum quota
+  const isTestFile = (p: string) =>
+    p.toLowerCase().includes("/test") ||
+    p.toLowerCase().includes("/__tests__") ||
+    p.toLowerCase().includes(".test.") ||
+    p.toLowerCase().includes(".spec.");
+
+  const testFiles = scored.filter((f) => isTestFile(f.path));
+  const nonTestFiles = scored.filter((f) => !isTestFile(f.path));
+
+  // Reserve slots: main budget minus test quota, then fill test quota
+  const mainBudget = MAX_FILES - MIN_TEST_FILES;
+  const mainSelection = nonTestFiles.slice(0, mainBudget);
+  const testSelection = testFiles.slice(0, MIN_TEST_FILES);
+
+  // Directory diversity pass: ensure each top-level dir has ≥1 file
+  const coveredDirs = new Set(mainSelection.map((f) => f.path.split("/")[0] ?? ""));
+  const diversitySlots: typeof scored = [];
+  for (const f of nonTestFiles) {
+    const topDir = f.path.split("/")[0] ?? "";
+    if (!coveredDirs.has(topDir)) {
+      coveredDirs.add(topDir);
+      diversitySlots.push(f);
+    }
+  }
+
+  const combined = new Map<string, (typeof scored)[number]>();
+  for (const f of [...mainSelection, ...diversitySlots, ...testSelection]) {
+    combined.set(f.path, f);
+  }
+  const selected = [...combined.values()].slice(0, MAX_FILES);
 
   // 5. Fetch contents in parallel batches of 10
   const BATCH_SIZE = 10;
@@ -343,6 +429,8 @@ export async function fetchRepository(
   // 6. Store bundle in Vercel Blob
   const blobPath = `analyses/${analysisId}/repo-bundle.json`;
 
+  const frameworkHints = detectFrameworks(files.map((f) => f.path));
+
   const bundle: RepoBundle = {
     projectId,
     analysisId,
@@ -361,6 +449,7 @@ export async function fetchRepository(
     totalFilesInRepo,
     selectedFileCount: files.length,
     blobPath,
+    frameworkHints,
   };
 
   await put(blobPath, JSON.stringify(bundle), { access: "private", addRandomSuffix: false });

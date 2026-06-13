@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { db } from "@/lib/db";
 import { env } from "@/env";
+import { creditReferrer } from "@/lib/referral";
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const { userId, plan } = session.metadata ?? {};
@@ -35,6 +36,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
     await tx.user.update({ where: { id: userId }, data: { plan: "pro" } });
   });
+
+  // Credit referrer if this is a first conversion
+  void creditReferrer(userId);
 }
 
 async function handleSubscriptionUpdated(sub: Stripe.Subscription) {

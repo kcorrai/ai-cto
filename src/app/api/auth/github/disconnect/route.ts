@@ -10,7 +10,7 @@ export async function DELETE() {
 
   await db.user.update({
     where: { clerkId: userId },
-    data: { githubAccessToken: null },
+    data: { githubAccessToken: null, githubInstallationId: null },
   });
 
   return new NextResponse(null, { status: 204 });

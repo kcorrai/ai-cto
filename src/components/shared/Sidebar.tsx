@@ -12,7 +12,13 @@ import {
   ScanSearch,
   Bot,
   FileText,
+  History,
+  Map,
+  Megaphone,
 } from "lucide-react";
+import { CHANGELOG } from "@/lib/changelog";
+
+const LATEST_ENTRY_DATE = CHANGELOG[0]?.date ?? "2026-01-01";
 import { cn } from "@/lib/utils";
 
 const primaryNav = [
@@ -24,7 +30,9 @@ const primaryNav = [
 const projectSubNav = [
   { segment: "overview", icon: BarChart2, label: "Overview" },
   { segment: "analysis", icon: ScanSearch, label: "Analysis" },
+  { segment: "history", icon: History, label: "History" },
   { segment: "advisor", icon: Bot, label: "Advisor" },
+  { segment: "roadmap", icon: Map, label: "Roadmap" },
   { segment: "reports", icon: FileText, label: "Reports" },
 ];
 
@@ -130,6 +138,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               ))}
             </div>
           )}
+          {/* What's New link */}
+          <div className="mt-auto pt-4">
+            <Link
+              href="/changelog"
+              onClick={() => onClose()}
+              className="flex h-9 items-center gap-2.5 rounded-md px-3 text-sm text-[#a0a0a0] transition-colors hover:bg-[#1a1a1a] hover:text-[#f0f0f0]"
+              data-changelog-date={LATEST_ENTRY_DATE}
+            >
+              <Megaphone className="h-4 w-4 shrink-0" />
+              <span>{"What's New"}</span>
+              <span
+                className="ml-auto h-2 w-2 rounded-full bg-[#3b82f6]"
+                aria-label="New updates"
+              />
+            </Link>
+          </div>
         </nav>
       </aside>
     </>

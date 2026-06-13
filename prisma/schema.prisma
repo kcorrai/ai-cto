@@ -38,6 +38,12 @@ enum ProjectStatus {
   deleted
 }
 
+enum LeaderboardSubmissionStatus {
+  pending
+  approved
+  rejected
+}
+
 enum AnalysisTrigger {
   manual
   auto
@@ -91,6 +97,18 @@ enum Effort {
   high
 }
 
+enum ReportType {
+  pdf
+  markdown
+  json
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -101,9 +119,13 @@ model User {
   avatarUrl         String?
   plan              Plan      @default(free)
   stripeCustomerId  String?   @unique @db.VarChar(255)
-  githubUsername    String?   @db.VarChar(255)
-  githubAccessToken String?   // stored encrypted
-  githubTokenScope  String?
+  githubUsername       String?   @db.VarChar(255)
+  githubAccessToken    String?   // stored encrypted (OAuth fallback)
+  githubTokenScope     String?
+  githubInstallationId BigInt?   // GitHub App installation ID
+  referralCode      String?   @unique @db.VarChar(20)
+  referredById      String?   @db.Uuid
+  referralCredits   Int       @default(0) // cents (USD)
   settings          Json      @default("{}")
   onboardingStep    Int       @default(0)
   createdAt         DateTime  @default(now()) @db.Timestamptz(6)
@@ -112,13 +134,46 @@ model User {
 
   projects          Project[]
   subscriptions     Subscription[]
-  analyses          Analysis[]       @relation("TriggeredBy")
-  resolvedFindings  Finding[]        @relation("ResolvedBy")
+  analyses          Analysis[]            @relation("TriggeredBy")
+  resolvedFindings  Finding[]             @relation("ResolvedBy")
+  reports           Report[]
+  conversations     AdvisorConversation[]
+  apiKeys           ApiKey[]
+  testimonials      Testimonial[]
+  referredBy        User?                 @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]                @relation("Referrals")
+  referralEvents    Referral[]            @relation("Referrer")
+  referralReceived  Referral[]            @relation("Referred")
 
   @@index([clerkId])
   @@index([email])
   @@index([stripeCustomerId])
+  @@index([referralCode])
   @@map("users")
+}
+
+enum ReferralStatus {
+  pending
+  converted
+  credited
+}
+
+model Referral {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId     String         @db.Uuid
+  referredUserId String         @db.Uuid
+  status         ReferralStatus @default(pending)
+  convertedAt    DateTime?      @db.Timestamptz(6)
+  creditedAt     DateTime?      @db.Timestamptz(6)
+  creditAmount   Int            @default(1000) // cents ($10)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+
+  referrer     User @relation("Referrer", fields: [referrerId], references: [id])
+  referred     User @relation("Referred", fields: [referredUserId], references: [id])
+
+  @@unique([referredUserId])
+  @@index([referrerId])
+  @@map("referrals")
 }
 
 model Subscription {
@@ -155,7 +210,9 @@ model Project {
   githubRepo     String?       @db.VarChar(255)
   githubBranch   String?       @default("main") @db.VarChar(255)
   githubUrl      String?
-  isPrivate      Boolean       @default(false)
+  isPrivate           Boolean       @default(false)
+  isLeaderboard       Boolean       @default(false)
+  leaderboardCategory String?       @db.VarChar(100)
   language       String?       @db.VarChar(50)
   framework      String?       @db.VarChar(50)
   techStack      Json          @default("[]")
@@ -169,15 +226,74 @@ model Project {
   updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
   deletedAt      DateTime?     @db.Timestamptz(6)
 
-  user     User       @relation(fields: [userId], references: [id])
-  analyses Analysis[]
-  findings Finding[]
+  user          User                  @relation(fields: [userId], references: [id])
+  analyses      Analysis[]
+  findings      Finding[]
+  reports       Report[]
+  conversations AdvisorConversation[]
 
   @@unique([userId, slug])
   @@index([userId])
   @@index([githubRepoId])
   @@index([status])
+  @@index([isLeaderboard])
   @@map("projects")
+}
+
+model ApiKey {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @db.Uuid
+  name       String    @db.VarChar(255)
+  keyHash    String    @unique @db.VarChar(64)
+  keyPrefix  String    @db.VarChar(20)
+  scopes     String[]  @default([])
+  lastUsedAt DateTime? @db.Timestamptz(6)
+  expiresAt  DateTime? @db.Timestamptz(6)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+enum TestimonialStatus {
+  pending
+  approved
+  rejected
+}
+
+model Testimonial {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String?           @db.Uuid
+  name        String            @db.VarChar(255)
+  role        String?           @db.VarChar(255)
+  productName String?           @db.VarChar(255)
+  avatarUrl   String?
+  quote       String            @db.Text
+  twitterUrl  String?           @db.VarChar(500)
+  status      TestimonialStatus @default(pending)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(6)
+  approvedAt  DateTime?         @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@map("testimonials")
+}
+
+model LeaderboardSubmission {
+  id             String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  githubUrl      String                     @db.VarChar(500)
+  submitterEmail String?                    @db.VarChar(255)
+  message        String?
+  status         LeaderboardSubmissionStatus @default(pending)
+  createdAt      DateTime                   @default(now()) @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("leaderboard_submissions")
 }
 
 model Analysis {
@@ -198,6 +314,9 @@ model Analysis {
   durationMs      Int?
   errorMessage    String?
   blobPath        String?
+  isPublic        Boolean        @default(false)
+  publicToken     String?        @unique @db.VarChar(64)
+  shareFindings   Boolean        @default(true)
   createdAt       DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
   completedAt     DateTime?      @db.Timestamptz(6)
@@ -206,6 +325,7 @@ model Analysis {
   triggeredBy     User             @relation("TriggeredBy", fields: [triggeredById], references: [id])
   modules         AnalysisModule[]
   findingRecords  Finding[]
+  reports         Report[]
 
   @@index([projectId])
   @@index([triggeredById])
@@ -265,4 +385,66 @@ model Finding {
   @@index([severity])
   @@index([isResolved])
   @@map("findings")
+}
+
+model Report {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  analysisId    String     @db.Uuid
+  projectId     String     @db.Uuid
+  generatedById String     @db.Uuid
+  type          ReportType
+  title         String     @db.VarChar(255)
+  blobUrl       String?
+  blobPath      String?
+  isPublic      Boolean    @default(false)
+  publicToken   String?    @unique @db.VarChar(64)
+  downloadCount Int        @default(0)
+  expiresAt     DateTime?  @db.Timestamptz(6)
+  createdAt     DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(6)
+
+  analysis    Analysis @relation(fields: [analysisId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id])
+  generatedBy User     @relation(fields: [generatedById], references: [id])
+
+  @@index([analysisId])
+  @@index([projectId])
+  @@index([generatedById])
+  @@map("reports")
+}
+
+model AdvisorConversation {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId    String   @db.Uuid
+  userId       String   @db.Uuid
+  title        String?  @db.VarChar(255)
+  messageCount Int      @default(0)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  project  Project          @relation(fields: [projectId], references: [id])
+  user     User             @relation(fields: [userId], references: [id])
+  messages AdvisorMessage[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("advisor_conversations")
+}
+
+model AdvisorMessage {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String      @db.Uuid
+  role           MessageRole
+  content        String
+  tokenCount     Int?
+  metadata       Json        @default("{}")
+  createdAt      DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(6)
+
+  conversation AdvisorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("advisor_messages")
 }

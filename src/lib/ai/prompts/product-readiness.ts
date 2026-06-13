@@ -1,6 +1,7 @@
 // v1 — 2026-06-12
 
 import type { RepoBundle } from "@/lib/github/fetcher";
+import { buildFrameworkContext } from "./shared";
 
 const CONTENT_CHAR_LIMIT = 2_500;
 
@@ -115,6 +116,7 @@ export function buildProductReadinessUserPrompt(bundle: RepoBundle): string {
 ## Repository
 Name: ${repoMetadata.fullName}
 Primary language: ${repoMetadata.language ?? "Unknown"}
+${buildFrameworkContext(bundle)}
 Total files in repo: ${totalFilesInRepo}
 Files analyzed: ${selectedFileCount}
 

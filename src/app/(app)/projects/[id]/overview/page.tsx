@@ -3,6 +3,10 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { AnalysisProgress } from "@/features/analyses/components/AnalysisProgress";
+import { ReAnalyzeButton } from "@/features/analyses/components/ReAnalyzeButton";
+import { BadgeSetup } from "@/features/projects/components/BadgeSetup";
+import { AutoAnalyzeToggle } from "@/features/projects/components/AutoAnalyzeToggle";
+import { env } from "@/env";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Overview — AI CTO" };
@@ -24,7 +28,7 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
 
   const user = await db.user.findUnique({
     where: { clerkId },
-    select: { id: true },
+    select: { id: true, plan: true },
   });
   if (!user) redirect("/sign-in");
 
@@ -38,6 +42,7 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
       latestScore: true,
       lastAnalyzedAt: true,
       analysisCount: true,
+      autoAnalyze: true,
     },
   });
   if (!project) notFound();
@@ -107,7 +112,7 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
 
       {/* Score card */}
       <div className="mb-4 rounded-xl border border-[#2a2a2a] bg-[#111111] p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-[#606060]">SaaS Score</p>
             <div className="mt-2 flex items-baseline gap-2">
@@ -122,17 +127,20 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
               </p>
             )}
           </div>
-          <Link
-            href={`/projects/${project.id}/analysis`}
-            className="rounded-md bg-[#3b82f6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2563eb]"
-          >
-            View full report
-          </Link>
+          <div className="flex flex-col items-end gap-2">
+            <Link
+              href={`/projects/${project.id}/analysis`}
+              className="rounded-md bg-[#3b82f6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2563eb]"
+            >
+              View full report
+            </Link>
+            <ReAnalyzeButton projectId={project.id} />
+          </div>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-[#2a2a2a] bg-[#111111] p-4">
           <p className="text-[11px] uppercase tracking-wider text-[#606060]">Analyses run</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-[#f0f0f0]">
@@ -144,6 +152,22 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
           <p className="mt-1 truncate text-sm font-medium text-[#a0a0a0]">{repoName}</p>
         </div>
       </div>
+
+      {/* Auto-analyze toggle */}
+      <div className="mb-4">
+        <AutoAnalyzeToggle
+          projectId={project.id}
+          initialEnabled={project.autoAnalyze}
+          isPro={user.plan !== "free"}
+        />
+      </div>
+
+      {/* Badge setup */}
+      <BadgeSetup
+        projectId={project.id}
+        projectUrl={`${env.NEXT_PUBLIC_APP_URL}/projects/${project.id}/overview`}
+        appUrl={env.NEXT_PUBLIC_APP_URL}
+      />
     </div>
   );
 }

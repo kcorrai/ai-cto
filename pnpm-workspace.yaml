@@ -5,6 +5,8 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - ai@6.0.202
 onlyBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
