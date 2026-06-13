@@ -25,6 +25,7 @@ const ALL_MODULES: ModuleName[] = [
   "product_readiness",
   "saas_maturity",
   "product_manager",
+  "market_intelligence",
 ];
 
 type PlanLimits = {
