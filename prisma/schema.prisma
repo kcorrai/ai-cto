@@ -73,6 +73,7 @@ enum ModuleName {
   devops
   product_readiness
   saas_maturity
+  product_manager
 }
 
 enum ModuleStatus {

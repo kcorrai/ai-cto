@@ -18,6 +18,7 @@ const MODULE_VARIANT_KEYS: Record<string, string> = {
   saas_maturity: "PROMPT_VARIANT_SAAS_MATURITY",
   dependencies: "PROMPT_VARIANT_DEPENDENCIES",
   product_readiness: "PROMPT_VARIANT_PRODUCT_READINESS",
+  product_manager: "PROMPT_VARIANT_PRODUCT_MANAGER",
 };
 
 export function getPromptVariant(module: string): PromptVariant {

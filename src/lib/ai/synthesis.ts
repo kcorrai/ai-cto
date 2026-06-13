@@ -27,6 +27,7 @@ const MODULE_DISPLAY_NAMES: Partial<Record<ModuleName, string>> = {
   database: "Database Design",
   devops: "DevOps / CI",
   saas_maturity: "SaaS Maturity",
+  product_manager: "Product Manager",
 };
 
 export type CriticalFinding = {
