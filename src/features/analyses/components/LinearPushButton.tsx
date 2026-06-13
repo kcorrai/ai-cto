@@ -33,17 +33,16 @@ export function LinearPushButton({
   }, [open, isLinearConnected]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!selectedTeam) {
-      setProjects([]);
-      setSelectedProject("");
-      return;
-    }
-    void fetch(`/api/integrations/linear/teams?teamId=${selectedTeam}`)
-      .then((r) => r.json())
-      .then((data: unknown) => {
-        if (Array.isArray(data)) setProjects(data as Project[]);
-      });
+    void (selectedTeam
+      ? fetch(`/api/integrations/linear/teams?teamId=${selectedTeam}`)
+          .then((r) => r.json() as Promise<unknown>)
+          .then((data) => {
+            if (Array.isArray(data)) setProjects(data as Project[]);
+          })
+      : Promise.resolve(null).then(() => {
+          setProjects([]);
+          setSelectedProject("");
+        }));
   }, [selectedTeam]);
 
   if (!isLinearConnected) {
