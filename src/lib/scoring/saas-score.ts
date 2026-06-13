@@ -17,6 +17,7 @@ export const MODULE_WEIGHTS: Record<ModuleName, number> = {
   product_manager: 0.07,
   market_intelligence: 0.06,
   team_advisor: 0.06,
+  security_owasp: 0.1,
 };
 
 export type SaaSScoreLabel =

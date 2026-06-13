@@ -27,6 +27,7 @@ const ALL_MODULES: ModuleName[] = [
   "product_manager",
   "market_intelligence",
   "team_advisor",
+  "security_owasp",
 ];
 
 type PlanLimits = {

@@ -30,6 +30,7 @@ const MODULE_DISPLAY_NAMES: Partial<Record<ModuleName, string>> = {
   product_manager: "Product Manager",
   market_intelligence: "Market Intelligence",
   team_advisor: "Team Advisor",
+  security_owasp: "OWASP Security Audit",
 };
 
 export type CriticalFinding = {
