@@ -11,11 +11,11 @@ Every session starts here. Every session ends by updating STATE.
 
 ```
 PHASE:        6 — Enterprise (in progress)
-ACTIVE TASK:  TASK-102 — SCIM Provisioning
+ACTIVE TASK:  TASK-103 — Advanced Audit Logs UI
 STATUS:       IN PROGRESS
 LAST UPDATED: 2026-06-13
 BLOCKER:      none
-LAST DONE:    TASK-101 (2026-06-13)
+LAST DONE:    TASK-102 (2026-06-13)
 ```
 
 ---

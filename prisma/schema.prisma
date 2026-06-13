@@ -154,6 +154,7 @@ model Organization {
   subscriptions    Subscription[]
   activityEvents   ActivityEvent[]
   outboundWebhooks OutboundWebhook[]
+  auditLogs        AuditLog[]
 
   @@index([clerkOrgId])
   @@map("organizations")
@@ -207,6 +208,7 @@ model User {
   testimonials      Testimonial[]
   orgMemberships    OrganizationMember[]
   activityEvents    ActivityEvent[]
+  auditLogs         AuditLog[]
   findingComments   FindingComment[]
   assignedFindings  Finding[]             @relation("AssignedTo")
   referredBy        User?                 @relation("Referrals", fields: [referredById], references: [id])
@@ -632,5 +634,27 @@ model WebhookDelivery {
 
   @@index([webhookId, createdAt(sort: Desc)])
   @@map("webhook_deliveries")
+}
+
+model AuditLog {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @db.Uuid
+  organizationId String?   @db.Uuid
+  action         String    @db.VarChar(100)
+  resource       String?   @db.VarChar(100)
+  resourceId     String?   @db.VarChar(255)
+  resourceName   String?   @db.VarChar(255)
+  metadata       Json      @default("{}")
+  ipAddress      String?   @db.VarChar(45)
+  userAgent      String?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  user         User          @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([userId])
+  @@index([action])
+  @@map("audit_logs")
 }
 
