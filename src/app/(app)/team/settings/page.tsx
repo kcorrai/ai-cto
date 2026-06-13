@@ -6,6 +6,7 @@ import { WebhookManager } from "@/components/team/WebhookManager";
 import { TeamBilling } from "@/components/team/TeamBilling";
 import { RetentionSettings } from "@/components/team/RetentionSettings";
 import { WhiteLabelSettings } from "@/components/team/WhiteLabelSettings";
+import { GHESettings } from "@/components/team/GHESettings";
 
 type SlackConfig = {
   analysis_complete: boolean;
@@ -24,6 +25,10 @@ type OrgSettings = {
     logoUrl?: string;
     companyName?: string;
     hideAttribution?: boolean;
+  };
+  ghe?: {
+    baseUrl: string;
+    connectedAs?: string;
   };
   [key: string]: unknown;
 };
@@ -75,6 +80,11 @@ export default async function TeamSettingsPage() {
     deleteRepoContentAfterAnalysis: false,
   };
   const brandingSettings = orgSettings.branding ?? {};
+  const gheState = {
+    configured: !!orgSettings.ghe,
+    baseUrl: orgSettings.ghe?.baseUrl ?? "",
+    connectedAs: orgSettings.ghe?.connectedAs ?? "",
+  };
 
   return (
     <div className="p-6 lg:p-8">
@@ -89,6 +99,7 @@ export default async function TeamSettingsPage() {
         <WebhookManager initial={webhooks} />
         <RetentionSettings plan={org.plan} initial={retentionPolicy} />
         <WhiteLabelSettings plan={org.plan} initial={brandingSettings} orgName={org.name ?? ""} />
+        <GHESettings plan={org.plan} initial={gheState} />
       </div>
     </div>
   );
