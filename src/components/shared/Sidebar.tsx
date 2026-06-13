@@ -25,6 +25,7 @@ import {
   Shield,
   FileSearch,
   Sliders,
+  UploadCloud,
 } from "lucide-react";
 import { useState } from "react";
 import { CHANGELOG } from "@/lib/changelog";
@@ -45,6 +46,7 @@ const teamNav = [
   { href: "/team/sso", icon: Shield, label: "SSO" },
   { href: "/team/audit", icon: FileSearch, label: "Audit Logs" },
   { href: "/team/admin", icon: Sliders, label: "Admin Console" },
+  { href: "/team/import", icon: UploadCloud, label: "Bulk Import" },
   { href: "/team/settings", icon: Settings, label: "Team Settings" },
 ];
 
