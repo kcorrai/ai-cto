@@ -10,7 +10,7 @@ Every session starts here. Every session ends by updating STATE.
 ## STATE
 
 ```
-PHASE:        5 — Team
+PHASE:        5 — Team (DONE → 6 — Enterprise next)
 ACTIVE TASK:  none — TASK-100 complete
 STATUS:       DONE
 LAST UPDATED: 2026-06-13
