@@ -5,6 +5,7 @@ import { SlackSettings } from "@/components/team/SlackSettings";
 import { WebhookManager } from "@/components/team/WebhookManager";
 import { TeamBilling } from "@/components/team/TeamBilling";
 import { RetentionSettings } from "@/components/team/RetentionSettings";
+import { WhiteLabelSettings } from "@/components/team/WhiteLabelSettings";
 
 type SlackConfig = {
   analysis_complete: boolean;
@@ -19,6 +20,11 @@ type OrgSettings = {
     auditLogMonths: number;
     deleteRepoContentAfterAnalysis: boolean;
   };
+  branding?: {
+    logoUrl?: string;
+    companyName?: string;
+    hideAttribution?: boolean;
+  };
   [key: string]: unknown;
 };
 
@@ -30,6 +36,7 @@ export default async function TeamSettingsPage() {
     where: { clerkOrgId: orgId, deletedAt: null },
     select: {
       id: true,
+      name: true,
       plan: true,
       stripeCustomerId: true,
       slackTeamId: true,
@@ -67,6 +74,7 @@ export default async function TeamSettingsPage() {
     auditLogMonths: 84,
     deleteRepoContentAfterAnalysis: false,
   };
+  const brandingSettings = orgSettings.branding ?? {};
 
   return (
     <div className="p-6 lg:p-8">
@@ -80,6 +88,7 @@ export default async function TeamSettingsPage() {
         <SlackSettings connected={connected} channelName={org.slackChannelName} config={config} />
         <WebhookManager initial={webhooks} />
         <RetentionSettings plan={org.plan} initial={retentionPolicy} />
+        <WhiteLabelSettings plan={org.plan} initial={brandingSettings} orgName={org.name ?? ""} />
       </div>
     </div>
   );
