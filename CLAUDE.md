@@ -10,9 +10,9 @@ Every session starts here. Every session ends by updating STATE.
 ## STATE
 
 ```
-PHASE:        7 — Platform
-ACTIVE TASK:  none
-STATUS:       PHASE 7 COMPLETE
+PHASE:        8 — Quality & Growth
+ACTIVE TASK:  TASK-131
+STATUS:       IN PROGRESS
 LAST UPDATED: 2026-06-13
 BLOCKER:      none
 LAST DONE:    TASK-130 (2026-06-13)
@@ -24,7 +24,7 @@ LAST DONE:    TASK-130 (2026-06-13)
 
 ```
 READ  → CLAUDE.md (this file)
-FIND  → active task in tasks/TASKS.md
+FIND  → active task in tasks/PHASE-8.md (Phase 8) or tasks/TASKS.md (Phases 1-5)
 READ  → only the docs listed in that task's "Reads" field
 BUILD → only what the task specifies
 TEST  → verify all acceptance criteria pass
@@ -44,15 +44,16 @@ STOP
 
 ## Phase Map
 
-| Phase            | Range               | Total | Done | State    |
-| ---------------- | ------------------- | ----- | ---- | -------- |
-| 1 — MVP          | TASK-001 → TASK-025 | 25    | 25   | **DONE** |
-| 2 — Core Product | TASK-026 → TASK-050 | 25    | 25   | **DONE** |
-| 3 — Advanced AI  | TASK-051 → TASK-070 | 20    | 20   | **DONE** |
-| 4 — Growth       | TASK-071 → TASK-085 | 15    | 15   | **DONE** |
-| 5 — Team         | TASK-086 → TASK-100 | 15    | 15   | **DONE** |
-| 6 — Enterprise   | TASK-101 → TASK-115 | 15    | 15   | **DONE** |
-| 7 — Platform     | TASK-116 → TASK-130 | 15    | 15   | **DONE** |
+| Phase                | Range               | Total | Done | State           |
+| -------------------- | ------------------- | ----- | ---- | --------------- |
+| 1 — MVP              | TASK-001 → TASK-025 | 25    | 25   | **DONE**        |
+| 2 — Core Product     | TASK-026 → TASK-050 | 25    | 25   | **DONE**        |
+| 3 — Advanced AI      | TASK-051 → TASK-070 | 20    | 20   | **DONE**        |
+| 4 — Growth           | TASK-071 → TASK-085 | 15    | 15   | **DONE**        |
+| 5 — Team             | TASK-086 → TASK-100 | 15    | 15   | **DONE**        |
+| 6 — Enterprise       | TASK-101 → TASK-115 | 15    | 15   | **DONE**        |
+| 7 — Platform         | TASK-116 → TASK-130 | 15    | 15   | **DONE**        |
+| 8 — Quality & Growth | TASK-131 → TASK-145 | 15    | 0    | **IN PROGRESS** |
 
 ---
 
@@ -187,6 +188,28 @@ These docs are written. Do not modify them. Reference only when a task lists the
 | docs/development-rules.md      | Architecture, testing, security rules         |
 
 All other docs/ files are strategic reference (vision, roadmap, etc.) — not needed during build.
+
+---
+
+## Phase 8 Task Registry
+
+| ID       | Title                                    | State       | Depends On | Score |
+| -------- | ---------------------------------------- | ----------- | ---------- | ----- |
+| TASK-131 | Prisma CASCADE DELETE + compound indexes | **PENDING** | —          | 93    |
+| TASK-132 | Analysis job retry + exponential backoff | **PENDING** | 131        | 89    |
+| TASK-133 | Finding search + filter UI               | **PENDING** | —          | 87    |
+| TASK-134 | Structured logging (replace console.\*)  | **PENDING** | —          | 85    |
+| TASK-135 | GitHub Actions CI/CD integration         | **PENDING** | —          | 84    |
+| TASK-136 | /api/health endpoint                     | **PENDING** | —          | 83    |
+| TASK-137 | Analysis comparison view                 | **PENDING** | 133        | 82    |
+| TASK-138 | GitHub OAuth token auto-refresh          | **PENDING** | 131        | 80    |
+| TASK-139 | Personal analytics dashboard             | **PENDING** | 131        | 79    |
+| TASK-140 | Jira integration                         | **PENDING** | 131        | 76    |
+| TASK-141 | @vitest/coverage-v8 + pre-commit hook    | **PENDING** | —          | 73    |
+| TASK-142 | Webhook retry with exponential backoff   | **PENDING** | 131        | 71    |
+| TASK-143 | Redis caching for analysis results       | **PENDING** | 131        | 69    |
+| TASK-144 | Project tags / labels                    | **PENDING** | 131        | 68    |
+| TASK-145 | Finding CSV export                       | **PENDING** | 133        | 63    |
 
 ---
 
