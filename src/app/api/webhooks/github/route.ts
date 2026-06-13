@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import { env } from "@/env";
+import { getAffectedModules } from "@/lib/monitoring/smart-diff";
 
 // Paths that are not considered meaningful code changes
 const IGNORED_PATH_PATTERNS = [
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
   }
 
   const repoFullName = payload.repository?.full_name;
-  const ref = payload.ref; // e.g. "refs/heads/main"
+  const ref = payload.ref;
   const installationId = payload.installation?.id;
 
   if (!repoFullName || !ref || !installationId) {
@@ -83,43 +84,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ skipped: "no significant changes" });
   }
 
-  // Find the project that matches this push
   if (!owner || !repo) return NextResponse.json({ ok: true });
 
+  // Find the project that matches this push (monitoring or auto-analyze)
   const project = await db.project.findFirst({
     where: {
       githubOwner: owner,
       githubRepo: repo,
       githubBranch: branch,
-      autoAnalyze: true,
       status: "active",
+      OR: [{ autoAnalyze: true }, { monitoringEnabled: true }],
     },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, monitoringEnabled: true, autoAnalyze: true },
   });
 
   if (!project) {
     return NextResponse.json({ ok: true });
   }
 
-  // Enforce 24-hour cooldown
+  // Monitoring mode: no cooldown, smart diff
+  if (project.monitoringEnabled) {
+    const affectedModules = getAffectedModules(changedFiles);
+    try {
+      const { triggerAnalysis } = await import("@/lib/queue/analysis");
+      await triggerAnalysis(project.id, project.userId, "monitoring", affectedModules ?? undefined);
+      await db.project.update({
+        where: { id: project.id },
+        data: { monitoringLastRun: new Date() },
+      });
+    } catch (err) {
+      console.error("Monitoring analysis trigger failed:", err);
+      return NextResponse.json({ error: "Trigger failed" }, { status: 500 });
+    }
+    return NextResponse.json({ triggered: true, mode: "monitoring", modules: affectedModules });
+  }
+
+  // Auto-analyze mode: 24-hour cooldown
   const cooldownKey = `auto_analyze:cooldown:${project.id}`;
   const existing = await redis.get(cooldownKey);
   if (existing) {
     return NextResponse.json({ skipped: "cooldown active" });
   }
 
-  // Set cooldown before triggering to prevent race conditions
   await redis.set(cooldownKey, "1", { ex: AUTO_ANALYZE_COOLDOWN });
 
   try {
     const { triggerAnalysis } = await import("@/lib/queue/analysis");
     await triggerAnalysis(project.id, project.userId, "webhook");
   } catch (err) {
-    // Clear cooldown so a retry can happen
     await redis.del(cooldownKey);
     console.error("Auto-analysis trigger failed:", err);
     return NextResponse.json({ error: "Trigger failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ triggered: true });
+  return NextResponse.json({ triggered: true, mode: "auto" });
 }

@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 const primaryNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/advisor", icon: Bot, label: "Portfolio Advisor" },
+  { href: "/dashboard/monitoring", icon: Activity, label: "Monitoring" },
   { href: "/projects", icon: FolderKanban, label: "Projects" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];

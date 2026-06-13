@@ -49,6 +49,7 @@ enum AnalysisTrigger {
   auto
   webhook
   scheduled
+  monitoring
 }
 
 enum AnalysisStatus {
@@ -314,8 +315,10 @@ model Project {
   lastAnalyzedAt DateTime?     @db.Timestamptz(6)
   analysisCount  Int           @default(0)
   latestScore    Int?
-  autoAnalyze    Boolean       @default(false)
-  status         ProjectStatus @default(active)
+  autoAnalyze        Boolean       @default(false)
+  monitoringEnabled  Boolean       @default(false)
+  monitoringLastRun  DateTime?     @db.Timestamptz(6)
+  status             ProjectStatus @default(active)
   settings       Json          @default("{}")
   createdAt      DateTime      @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime      @updatedAt @db.Timestamptz(6)

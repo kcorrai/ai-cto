@@ -14,7 +14,8 @@ export { releaseLock, AnalysisAlreadyRunningError, type AnalysisJobPayload };
 export async function triggerAnalysis(
   projectId: string,
   userId: string,
-  trigger: AnalysisTrigger = "manual"
+  trigger: AnalysisTrigger = "manual",
+  moduleOverride?: string[]
 ): Promise<string> {
   await checkAnalysisLimit(userId);
 
@@ -26,7 +27,11 @@ export async function triggerAnalysis(
   let analysisId: string;
   try {
     const user = await db.user.findUnique({ where: { id: userId }, select: { plan: true } });
-    const modules = getModulesForPlan(user?.plan ?? "free");
+    const planModules = getModulesForPlan(user?.plan ?? "free");
+    // Smart diff: intersect override with plan modules so we never run locked modules
+    const modules = moduleOverride
+      ? (planModules as string[]).filter((m) => moduleOverride.includes(m))
+      : (planModules as string[]);
 
     const analysis = await db.analysis.create({
       data: {
@@ -44,7 +49,7 @@ export async function triggerAnalysis(
       analysisId,
       projectId,
       userId,
-      modules: modules as string[],
+      modules,
     };
 
     // POST to the queue route (maxDuration=300) so the analysis survives after
