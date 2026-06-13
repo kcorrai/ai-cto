@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { createElement as h } from "react";
 import { db } from "@/lib/db";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 function scoreColor(score: number): string {
   if (score >= 80) return "#22c55e";
