@@ -1,0 +1,51 @@
+# AI CTO — GitHub Actions Integration Template
+#
+# Copy this file to .github/workflows/ai-cto.yml in your repository.
+# Set the required secrets and variables in your GitHub repo settings.
+#
+# Required:
+#   Secrets: AICTO_API_KEY   (Settings → Secrets → Actions)
+#   Variables: AICTO_PROJECT_ID  (Settings → Variables → Actions)
+#
+# Get your API key and project ID from https://aicto.dev/settings
+
+name: AI CTO Analysis
+
+on:
+  push:
+    branches:
+      - main
+
+  # Optional: also run on pull requests (comment out if not needed)
+  # pull_request:
+  #   branches:
+  #     - main
+
+jobs:
+  analyze:
+    name: Run AI CTO Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger AI CTO analysis
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://aicto.dev/api/v1/projects/${{ vars.AICTO_PROJECT_ID }}/analyses" \
+            -H "Authorization: Bearer ${{ secrets.AICTO_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"trigger":"ci"}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          echo "Response: $BODY"
+          echo "HTTP status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" -ne 200 ] && [ "$HTTP_CODE" -ne 201 ]; then
+            echo "Error: AI CTO analysis trigger failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+          ANALYSIS_ID=$(echo "$BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "Analysis triggered: $ANALYSIS_ID"
+          echo "View results at: https://aicto.dev/projects/${{ vars.AICTO_PROJECT_ID }}/analysis"

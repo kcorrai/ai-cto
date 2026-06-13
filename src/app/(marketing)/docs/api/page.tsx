@@ -125,6 +125,18 @@ export default function ApiDocsPage() {
                 </li>
               </ul>
             </div>
+            <div>
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[#606060]">
+                Integrations
+              </p>
+              <ul className="space-y-1.5 text-sm text-[#a0a0a0]">
+                <li>
+                  <Link href="/docs/github-actions" className="hover:text-[#f0f0f0]">
+                    GitHub Actions
+                  </Link>
+                </li>
+              </ul>
+            </div>
             {ENDPOINTS.map((g) => (
               <div key={g.group}>
                 <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[#606060]">
