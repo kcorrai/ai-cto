@@ -75,6 +75,7 @@ enum ModuleName {
   saas_maturity
   product_manager
   market_intelligence
+  team_advisor
 }
 
 enum ModuleStatus {

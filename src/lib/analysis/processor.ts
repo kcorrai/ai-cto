@@ -18,6 +18,7 @@ import { runDevOpsModule } from "@/lib/ai/modules/devops";
 import { runSaasMaturityModule } from "@/lib/ai/modules/saas-maturity";
 import { runProductManagerModule } from "@/lib/ai/modules/product-manager";
 import { runMarketIntelligenceModule } from "@/lib/ai/modules/market-intelligence";
+import { runTeamAdvisorModule } from "@/lib/ai/modules/team-advisor";
 import { calculateSaaSScore } from "@/lib/scoring/saas-score";
 import { generateExecutiveSummary } from "@/lib/ai/synthesis";
 import type { CriticalFinding } from "@/lib/ai/synthesis";
@@ -106,6 +107,7 @@ const MODULES: Array<{ name: ModuleName; run: (b: RepoBundle) => Promise<{ score
   { name: "product_readiness", run: runProductReadinessModule },
   { name: "product_manager", run: runProductManagerModule },
   { name: "market_intelligence", run: runMarketIntelligenceModule },
+  { name: "team_advisor", run: runTeamAdvisorModule },
 ];
 
 export async function processAnalysis(message: AnalysisJobPayload): Promise<void> {

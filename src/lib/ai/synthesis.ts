@@ -29,6 +29,7 @@ const MODULE_DISPLAY_NAMES: Partial<Record<ModuleName, string>> = {
   saas_maturity: "SaaS Maturity",
   product_manager: "Product Manager",
   market_intelligence: "Market Intelligence",
+  team_advisor: "Team Advisor",
 };
 
 export type CriticalFinding = {

@@ -20,6 +20,7 @@ const MODULE_VARIANT_KEYS: Record<string, string> = {
   product_readiness: "PROMPT_VARIANT_PRODUCT_READINESS",
   product_manager: "PROMPT_VARIANT_PRODUCT_MANAGER",
   market_intelligence: "PROMPT_VARIANT_MARKET_INTELLIGENCE",
+  team_advisor: "PROMPT_VARIANT_TEAM_ADVISOR",
 };
 
 export function getPromptVariant(module: string): PromptVariant {
