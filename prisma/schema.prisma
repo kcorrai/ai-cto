@@ -195,6 +195,7 @@ model User {
   githubAccessToken    String?   // stored encrypted (OAuth fallback)
   githubTokenScope     String?
   githubInstallationId BigInt?   // GitHub App installation ID
+  githubTokenExpiredAt DateTime? @db.Timestamptz(6)
   referralCode      String?   @unique @db.VarChar(20)
   referredById      String?   @db.Uuid
   referralCredits   Int       @default(0) // cents (USD)

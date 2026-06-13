@@ -54,11 +54,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${env.NEXT_PUBLIC_APP_URL}/settings?error=no_token`);
   }
 
-  // Encrypt and store
+  // Encrypt and store; clear any expiry flag from a previous revocation
   const encryptedToken = encrypt(tokenData.access_token);
   await db.user.update({
     where: { clerkId: userId },
-    data: { githubAccessToken: encryptedToken },
+    data: { githubAccessToken: encryptedToken, githubTokenExpiredAt: null },
   });
 
   return NextResponse.redirect(`${env.NEXT_PUBLIC_APP_URL}/settings?connected=true`);

@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { GitHubReconnectBanner } from "@/components/shared/github-reconnect-banner";
 import { AnalysisProgress } from "@/features/analyses/components/AnalysisProgress";
 import { ReAnalyzeButton } from "@/features/analyses/components/ReAnalyzeButton";
 import { BadgeSetup } from "@/features/projects/components/BadgeSetup";
@@ -28,7 +29,7 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
 
   const user = await db.user.findUnique({
     where: { clerkId },
-    select: { id: true, plan: true },
+    select: { id: true, plan: true, githubTokenExpiredAt: true },
   });
   if (!user) redirect("/sign-in");
 
@@ -95,6 +96,11 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
 
   return (
     <div className="mx-auto max-w-[640px] px-6 py-8">
+      {user.githubTokenExpiredAt && (
+        <div className="mb-6">
+          <GitHubReconnectBanner />
+        </div>
+      )}
       <div className="mb-6">
         <p className="text-[11px] uppercase tracking-widest text-[#606060]">Overview</p>
         <h1 className="mt-1 text-xl font-semibold text-[#f0f0f0]">{repoName}</h1>

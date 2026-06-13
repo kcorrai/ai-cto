@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { GitHubReconnectBanner } from "@/components/shared/github-reconnect-banner";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Dashboard — AI CTO" };
@@ -24,6 +25,7 @@ export default async function DashboardPage() {
       id: true,
       name: true,
       githubAccessToken: true,
+      githubTokenExpiredAt: true,
       plan: true,
       projects: {
         where: { status: { not: "deleted" } },
@@ -142,6 +144,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[760px] px-6 py-8">
+      {user.githubTokenExpiredAt && (
+        <div className="mb-6">
+          <GitHubReconnectBanner />
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-[#f0f0f0]">Dashboard</h1>
         <p className="mt-0.5 text-xs text-[#606060]">

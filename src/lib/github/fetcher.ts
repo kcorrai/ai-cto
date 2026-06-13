@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getGitHubClient } from "@/lib/github/client";
+import { getGitHubClient, handleGitHub401 } from "@/lib/github/client";
 import { env } from "@/env";
 import { put } from "@vercel/blob";
 
@@ -311,22 +311,39 @@ export async function fetchRepository(
     throw new Error("BLOB_READ_WRITE_TOKEN is not configured — set it up in Vercel Blob");
   }
 
-  const octokit = await getGitHubClient(userId);
+  let octokit: Awaited<ReturnType<typeof getGitHubClient>>;
+  try {
+    octokit = await getGitHubClient(userId);
+  } catch (err) {
+    throw err;
+  }
+
+  // Wrap all GitHub API calls — catch 401 to detect token expiry
+  async function githubCall<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      if (typeof err === "object" && err !== null && (err as { status?: number }).status === 401) {
+        await handleGitHub401(userId);
+        throw new Error("GitHub account disconnected — please reconnect in Settings");
+      }
+      throw err;
+    }
+  }
 
   // 1. Fetch repo metadata
-  const { data: repoData } = await octokit.repos.get({ owner, repo });
+  const { data: repoData } = await githubCall(() => octokit.repos.get({ owner, repo }));
 
   // 2. Get branch HEAD tree SHA
-  const { data: branchData } = await octokit.repos.getBranch({ owner, repo, branch });
+  const { data: branchData } = await githubCall(() =>
+    octokit.repos.getBranch({ owner, repo, branch })
+  );
   const treeSha = branchData.commit.commit.tree.sha;
 
   // 3. Fetch full recursive file tree
-  const { data: treeData } = await octokit.git.getTree({
-    owner,
-    repo,
-    tree_sha: treeSha,
-    recursive: "1",
-  });
+  const { data: treeData } = await githubCall(() =>
+    octokit.git.getTree({ owner, repo, tree_sha: treeSha, recursive: "1" })
+  );
 
   const allBlobs = (treeData.tree ?? []).filter((f) => f.type === "blob");
   const totalFilesInRepo = allBlobs.length;
