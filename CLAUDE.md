@@ -11,11 +11,11 @@ Every session starts here. Every session ends by updating STATE.
 
 ```
 PHASE:        8 — Quality & Growth
-ACTIVE TASK:  TASK-137
+ACTIVE TASK:  TASK-138
 STATUS:       IN PROGRESS
 LAST UPDATED: 2026-06-13
 BLOCKER:      none
-LAST DONE:    TASK-136 (2026-06-13)
+LAST DONE:    TASK-137 (2026-06-13)
 ```
 
 ---
@@ -201,7 +201,7 @@ All other docs/ files are strategic reference (vision, roadmap, etc.) — not ne
 | TASK-134 | Structured logging (replace console.\*)  | **DONE**    | —          | 85    |
 | TASK-135 | GitHub Actions CI/CD integration         | **DONE**    | —          | 84    |
 | TASK-136 | /api/health endpoint                     | **DONE**    | —          | 83    |
-| TASK-137 | Analysis comparison view                 | **PENDING** | 133        | 82    |
+| TASK-137 | Analysis comparison view                 | **DONE**    | 133        | 82    |
 | TASK-138 | GitHub OAuth token auto-refresh          | **PENDING** | 131        | 80    |
 | TASK-139 | Personal analytics dashboard             | **PENDING** | 131        | 79    |
 | TASK-140 | Jira integration                         | **PENDING** | 131        | 76    |
