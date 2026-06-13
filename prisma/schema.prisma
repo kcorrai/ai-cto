@@ -103,6 +103,19 @@ enum ReportType {
   json
 }
 
+enum WebhookEvent {
+  analysis_complete
+  critical_finding
+  findings_resolved
+  member_joined
+}
+
+enum WebhookDeliveryStatus {
+  pending
+  success
+  failed
+}
+
 enum MessageRole {
   user
   assistant
@@ -129,10 +142,11 @@ model Organization {
   updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
   deletedAt        DateTime? @db.Timestamptz(6)
 
-  members        OrganizationMember[]
-  projects       Project[]
-  subscriptions  Subscription[]
-  activityEvents ActivityEvent[]
+  members          OrganizationMember[]
+  projects         Project[]
+  subscriptions    Subscription[]
+  activityEvents   ActivityEvent[]
+  outboundWebhooks OutboundWebhook[]
 
   @@index([clerkOrgId])
   @@map("organizations")
@@ -557,3 +571,41 @@ model ActivityEvent {
   @@index([userId])
   @@map("activity_events")
 }
+
+model OutboundWebhook {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String         @db.Uuid
+  name           String         @db.VarChar(255)
+  url            String
+  secret         String         // HMAC-SHA256 signing secret (encrypted)
+  events         WebhookEvent[]
+  enabled        Boolean        @default(true)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  deliveries   WebhookDelivery[]
+
+  @@index([organizationId])
+  @@map("outbound_webhooks")
+}
+
+model WebhookDelivery {
+  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webhookId  String                @db.Uuid
+  event      WebhookEvent
+  payload    Json
+  status     WebhookDeliveryStatus @default(pending)
+  statusCode Int?
+  response   String?               @db.Text
+  durationMs Int?
+  attempt    Int                   @default(1)
+  deliveredAt DateTime?            @db.Timestamptz(6)
+  createdAt  DateTime              @default(now()) @db.Timestamptz(6)
+
+  webhook OutboundWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt(sort: Desc)])
+  @@map("webhook_deliveries")
+}
+

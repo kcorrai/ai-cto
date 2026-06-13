@@ -21,6 +21,7 @@ import { sendEmail } from "@/lib/email";
 import { AnalysisCompleteEmail } from "@/emails/AnalysisCompleteEmail";
 import { AnalysisFailedEmail } from "@/emails/AnalysisFailedEmail";
 import { sendSlackMessage, analysisCompleteBlocks, criticalFindingBlocks } from "@/lib/slack";
+import { dispatchWebhookEvent } from "@/lib/webhooks";
 import { env } from "@/env";
 
 // Run tasks with a max concurrency limit using a worker-pool pattern.
@@ -318,6 +319,18 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
           });
         }
       }
+      // Outbound webhooks
+      void dispatchWebhookEvent({
+        organizationId: projectWithOrg.organizationId,
+        event: "analysis_complete",
+        data: {
+          analysisId,
+          projectId,
+          projectName: bundle.repoMetadata.fullName,
+          score,
+          label,
+        },
+      });
     }
   } catch (error) {
     await db.analysis.update({
