@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 import {
   X,
   Zap,
@@ -15,7 +16,13 @@ import {
   History,
   Map,
   Megaphone,
+  Users,
+  LayoutGrid,
+  ChevronDown,
+  Check,
+  Plus,
 } from "lucide-react";
+import { useState } from "react";
 import { CHANGELOG } from "@/lib/changelog";
 
 const LATEST_ENTRY_DATE = CHANGELOG[0]?.date ?? "2026-01-01";
@@ -25,6 +32,11 @@ const primaryNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/projects", icon: FolderKanban, label: "Projects" },
   { href: "/settings", icon: Settings, label: "Settings" },
+];
+
+const teamNav = [
+  { href: "/team", icon: LayoutGrid, label: "Team Dashboard" },
+  { href: "/team/members", icon: Users, label: "Members" },
 ];
 
 const projectSubNav = [
@@ -41,8 +53,117 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+function OrgSwitcher({ onClose }: { onClose: () => void }) {
+  const { user } = useUser();
+  const { organization } = useOrganization();
+  const { userMemberships, setActive } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+
+  const currentName = organization?.name ?? user?.firstName ?? "Personal";
+  const currentLogoUrl = organization?.imageUrl ?? user?.imageUrl;
+
+  function toggle() {
+    setOpen((v) => !v);
+  }
+
+  async function switchTo(orgId: string | null) {
+    if (!setActive) return;
+    await setActive({ organization: orgId });
+    setOpen(false);
+    router.push("/dashboard");
+    onClose();
+  }
+
+  return (
+    <div className="relative px-2 pb-2">
+      <button
+        onClick={toggle}
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#a0a0a0] transition-colors hover:bg-[#1a1a1a] hover:text-[#f0f0f0]"
+      >
+        {currentLogoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={currentLogoUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3b82f6] text-[10px] font-bold text-white">
+            {currentName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <span className="flex-1 truncate text-left text-[#f0f0f0]">{currentName}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-2 right-2 top-full z-20 mt-1 rounded-lg border border-[#2a2a2a] bg-[#161616] p-1 shadow-xl">
+            {/* Personal account */}
+            <button
+              onClick={() => switchTo(null)}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#a0a0a0] transition-colors hover:bg-[#1a1a1a] hover:text-[#f0f0f0]"
+            >
+              {user?.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.imageUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
+              ) : (
+                <div className="h-5 w-5 rounded-full bg-[#2a2a2a]" />
+              )}
+              <span className="flex-1 truncate text-left">Personal account</span>
+              {!organization && <Check className="h-3.5 w-3.5 text-[#3b82f6]" />}
+            </button>
+
+            {/* Org list */}
+            {(userMemberships?.data ?? []).length > 0 && <div className="my-1 h-px bg-[#2a2a2a]" />}
+            {(userMemberships?.data ?? []).map((m) => (
+              <button
+                key={m.organization.id}
+                onClick={() => switchTo(m.organization.id)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#a0a0a0] transition-colors hover:bg-[#1a1a1a] hover:text-[#f0f0f0]"
+              >
+                {m.organization.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.organization.imageUrl}
+                    alt=""
+                    className="h-5 w-5 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3b82f6]/20 text-[10px] font-bold text-[#3b82f6]">
+                    {m.organization.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="flex-1 truncate text-left">{m.organization.name}</span>
+                {organization?.id === m.organization.id && (
+                  <Check className="h-3.5 w-3.5 text-[#3b82f6]" />
+                )}
+              </button>
+            ))}
+
+            {/* Create team */}
+            <div className="my-1 h-px bg-[#2a2a2a]" />
+            <Link
+              href="/orgs/new"
+              onClick={() => {
+                setOpen(false);
+                onClose();
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#a0a0a0] transition-colors hover:bg-[#1a1a1a] hover:text-[#f0f0f0]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create Team</span>
+            </Link>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { organization } = useOrganization();
 
   const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
   const projectId = projectMatch?.[1];
@@ -95,6 +216,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
+        {/* Org Switcher */}
+        <div className="border-b border-[#1f1f1f] py-2">
+          <OrgSwitcher onClose={onClose} />
+        </div>
+
         {/* Primary navigation */}
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3" role="navigation">
           {primaryNav.map((item) => (
@@ -113,6 +239,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span>{item.label}</span>
             </Link>
           ))}
+
+          {/* Team navigation (only when an org is active) */}
+          {organization && (
+            <div className="mt-5">
+              <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[#606060]">
+                Team
+              </p>
+              {teamNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => onClose()}
+                  className={cn(
+                    "flex h-9 items-center gap-2.5 rounded-md px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]",
+                    isNavActive(item.href)
+                      ? "bg-[#1e3a5f] text-[#3b82f6]"
+                      : "text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-[#f0f0f0]"
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* Project sub-navigation */}
           {projectId && (
