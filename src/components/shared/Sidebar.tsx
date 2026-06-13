@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Check,
   Plus,
+  Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { CHANGELOG } from "@/lib/changelog";
@@ -37,6 +38,7 @@ const primaryNav = [
 const teamNav = [
   { href: "/team", icon: LayoutGrid, label: "Team Dashboard" },
   { href: "/team/members", icon: Users, label: "Members" },
+  { href: "/team/activity", icon: Activity, label: "Activity" },
 ];
 
 const projectSubNav = [

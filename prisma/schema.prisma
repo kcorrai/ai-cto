@@ -124,9 +124,10 @@ model Organization {
   updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
   deletedAt        DateTime? @db.Timestamptz(6)
 
-  members       OrganizationMember[]
-  projects      Project[]
-  subscriptions Subscription[]
+  members        OrganizationMember[]
+  projects       Project[]
+  subscriptions  Subscription[]
+  activityEvents ActivityEvent[]
 
   @@index([clerkOrgId])
   @@map("organizations")
@@ -179,6 +180,7 @@ model User {
   apiKeys           ApiKey[]
   testimonials      Testimonial[]
   orgMemberships    OrganizationMember[]
+  activityEvents    ActivityEvent[]
   referredBy        User?                 @relation("Referrals", fields: [referredById], references: [id])
   referrals         User[]                @relation("Referrals")
   referralEvents    Referral[]            @relation("Referrer")
@@ -196,6 +198,15 @@ enum OrgRole {
   admin
   editor
   viewer
+}
+
+enum ActivityEventType {
+  analysis_triggered
+  findings_resolved
+  project_created
+  report_exported
+  member_invited
+  critical_finding
 }
 
 enum ReferralStatus {
@@ -499,4 +510,23 @@ model AdvisorMessage {
   @@index([conversationId])
   @@index([createdAt])
   @@map("advisor_messages")
+}
+
+model ActivityEvent {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String            @db.Uuid
+  userId         String            @db.Uuid
+  eventType      ActivityEventType
+  targetType     String?           @db.VarChar(50)
+  targetId       String?           @db.VarChar(255)
+  targetName     String?           @db.VarChar(255)
+  metadata       Json              @default("{}")
+  createdAt      DateTime          @default(now()) @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([userId])
+  @@map("activity_events")
 }
