@@ -11,11 +11,11 @@ Every session starts here. Every session ends by updating STATE.
 
 ```
 PHASE:        8 — Quality & Growth
-ACTIVE TASK:  TASK-131
+ACTIVE TASK:  TASK-137
 STATUS:       IN PROGRESS
 LAST UPDATED: 2026-06-13
 BLOCKER:      none
-LAST DONE:    TASK-130 (2026-06-13)
+LAST DONE:    TASK-136 (2026-06-13)
 ```
 
 ---
@@ -195,12 +195,12 @@ All other docs/ files are strategic reference (vision, roadmap, etc.) — not ne
 
 | ID       | Title                                    | State       | Depends On | Score |
 | -------- | ---------------------------------------- | ----------- | ---------- | ----- |
-| TASK-131 | Prisma CASCADE DELETE + compound indexes | **PENDING** | —          | 93    |
-| TASK-132 | Analysis job retry + exponential backoff | **PENDING** | 131        | 89    |
-| TASK-133 | Finding search + filter UI               | **PENDING** | —          | 87    |
-| TASK-134 | Structured logging (replace console.\*)  | **PENDING** | —          | 85    |
-| TASK-135 | GitHub Actions CI/CD integration         | **PENDING** | —          | 84    |
-| TASK-136 | /api/health endpoint                     | **PENDING** | —          | 83    |
+| TASK-131 | Prisma CASCADE DELETE + compound indexes | **DONE**    | —          | 93    |
+| TASK-132 | Analysis job retry + exponential backoff | **DONE**    | 131        | 89    |
+| TASK-133 | Finding search + filter UI               | **DONE**    | —          | 87    |
+| TASK-134 | Structured logging (replace console.\*)  | **DONE**    | —          | 85    |
+| TASK-135 | GitHub Actions CI/CD integration         | **DONE**    | —          | 84    |
+| TASK-136 | /api/health endpoint                     | **DONE**    | —          | 83    |
 | TASK-137 | Analysis comparison view                 | **PENDING** | 133        | 82    |
 | TASK-138 | GitHub OAuth token auto-refresh          | **PENDING** | 131        | 80    |
 | TASK-139 | Personal analytics dashboard             | **PENDING** | 131        | 79    |
