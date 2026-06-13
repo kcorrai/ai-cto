@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import { env } from "@/env";
+import { logger } from "@/lib/logger";
 import { getAffectedModules } from "@/lib/monitoring/smart-diff";
 
 // Paths that are not considered meaningful code changes
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
         data: { monitoringLastRun: new Date() },
       });
     } catch (err) {
-      console.error("Monitoring analysis trigger failed:", err);
+      logger.errorFrom("Monitoring analysis trigger failed", err);
       return NextResponse.json({ error: "Trigger failed" }, { status: 500 });
     }
     return NextResponse.json({ triggered: true, mode: "monitoring", modules: affectedModules });
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
     await triggerAnalysis(project.id, project.userId, "webhook");
   } catch (err) {
     await redis.del(cooldownKey);
-    console.error("Auto-analysis trigger failed:", err);
+    logger.errorFrom("Auto-analysis trigger failed", err);
     return NextResponse.json({ error: "Trigger failed" }, { status: 500 });
   }
 

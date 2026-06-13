@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { db } from "@/lib/db";
 import { env } from "@/env";
+import { logger } from "@/lib/logger";
 import { creditReferrer } from "@/lib/referral";
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
         break;
     }
   } catch (err) {
-    console.error(`Stripe webhook error [${event.type}]:`, err);
+    logger.errorFrom("Stripe webhook error", err, { eventType: event.type });
     return new NextResponse("Handler error", { status: 500 });
   }
 

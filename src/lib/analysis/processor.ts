@@ -1,5 +1,6 @@
 import type { ModuleName, Severity, Effort } from "@prisma/client";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { fetchRepository, type RepoBundle } from "@/lib/github/fetcher";
 import { releaseLock, type AnalysisJobPayload } from "@/lib/analysis/shared";
 import { generateText } from "ai";
@@ -87,7 +88,7 @@ async function runCustomModule(
         typeof f === "object" && f !== null && "title" in f && "severity" in f
     );
   } catch {
-    console.error(`Custom module ${moduleId} (${moduleName}) failed`);
+    logger.error("Custom module failed", { moduleId, moduleName });
     return [];
   }
 }

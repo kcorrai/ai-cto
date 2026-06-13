@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { type AnalysisTrigger } from "@prisma/client";
 import { checkAnalysisLimit, getModulesForPlan } from "@/lib/billing/limits";
 import { env } from "@/env";
@@ -65,7 +66,7 @@ export async function triggerAnalysis(
         "x-internal-secret": env.ENCRYPTION_KEY,
       },
       body: JSON.stringify(payload),
-    }).catch((err: unknown) => console.error("Failed to queue analysis:", err));
+    }).catch((err: unknown) => logger.errorFrom("Failed to queue analysis", err));
   } catch (error) {
     await releaseLock(projectId);
     throw error;
