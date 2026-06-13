@@ -119,6 +119,18 @@ export default async function AnalysisPage(props: {
   const label = (breakdown?.label as string | undefined) ?? "Pre-Alpha";
   const score = latest.score ?? 0;
 
+  // Fetch previous completed analysis for "Compare with previous" button
+  const previousAnalysis = await db.analysis.findFirst({
+    where: {
+      projectId: project.id,
+      status: "complete",
+      id: { not: latest.id },
+      createdAt: { lt: latest.completedAt ?? new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
   // Fetch full analysis record for metadata (competitor analysis)
   const latestFull = await db.analysis.findUnique({
     where: { id: latest.id },
@@ -228,7 +240,15 @@ export default async function AnalysisPage(props: {
           )}
         </div>
         {!requestedAnalysisId && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {previousAnalysis && (
+              <Link
+                href={`/projects/${project.id}/compare?a=${previousAnalysis.id}&b=${latest.id}`}
+                className="rounded-md border border-[#2a2a2a] bg-[#111111] px-3 py-1.5 text-xs font-medium text-[#a0a0a0] transition-colors hover:border-[#404040] hover:text-[#f0f0f0]"
+              >
+                Compare with previous
+              </Link>
+            )}
             <ShareButton
               projectName={`${project.githubOwner}/${project.githubRepo}`}
               score={score}

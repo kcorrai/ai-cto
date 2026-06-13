@@ -175,14 +175,25 @@ export default async function HistoryPage(props: { params: Promise<{ id: string 
               </div>
             );
 
+            // Find the next older complete analysis for compare link
+            const olderComplete = analyses.slice(index + 1).find((a) => a.status === "complete");
+
             if (isComplete) {
               return (
-                <Link
-                  key={analysis.id}
-                  href={`/projects/${project.id}/analysis?analysisId=${analysis.id}`}
-                >
-                  {card}
-                </Link>
+                <div key={analysis.id} className="group relative">
+                  <Link href={`/projects/${project.id}/analysis?analysisId=${analysis.id}`}>
+                    {card}
+                  </Link>
+                  {olderComplete && (
+                    <Link
+                      href={`/projects/${project.id}/compare?a=${olderComplete.id}&b=${analysis.id}`}
+                      className="absolute bottom-3 right-4 hidden rounded border border-[#2a2a2a] px-2 py-1 text-[10px] text-[#606060] transition-colors hover:border-[#404040] hover:text-[#f0f0f0] group-hover:block"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Compare →
+                    </Link>
+                  )}
+                </div>
               );
             }
 
