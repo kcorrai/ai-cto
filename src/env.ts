@@ -51,6 +51,11 @@ export const env = createEnv({
     // Linear integration (optional)
     LINEAR_CLIENT_ID: z.string().min(1).optional(),
     LINEAR_CLIENT_SECRET: z.string().min(1).optional(),
+
+    // Slack integration (optional)
+    SLACK_CLIENT_ID: z.string().min(1).optional(),
+    SLACK_CLIENT_SECRET: z.string().min(1).optional(),
+    SLACK_SIGNING_SECRET: z.string().min(1).optional(),
   },
 
   client: {
@@ -86,6 +91,9 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     LINEAR_CLIENT_ID: process.env.LINEAR_CLIENT_ID,
     LINEAR_CLIENT_SECRET: process.env.LINEAR_CLIENT_SECRET,
+    SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
+    SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET,
+    SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   },

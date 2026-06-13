@@ -39,6 +39,7 @@ const teamNav = [
   { href: "/team", icon: LayoutGrid, label: "Team Dashboard" },
   { href: "/team/members", icon: Users, label: "Members" },
   { href: "/team/activity", icon: Activity, label: "Activity" },
+  { href: "/team/settings", icon: Settings, label: "Team Settings" },
 ];
 
 const projectSubNav = [

@@ -20,6 +20,7 @@ import type { CriticalFinding } from "@/lib/ai/synthesis";
 import { sendEmail } from "@/lib/email";
 import { AnalysisCompleteEmail } from "@/emails/AnalysisCompleteEmail";
 import { AnalysisFailedEmail } from "@/emails/AnalysisFailedEmail";
+import { sendSlackMessage, analysisCompleteBlocks, criticalFindingBlocks } from "@/lib/slack";
 import { env } from "@/env";
 
 // Run tasks with a max concurrency limit using a worker-pool pattern.
@@ -144,8 +145,8 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
           filePath: f.filePath ?? null,
           effort: (f.effort as Effort | undefined) ?? null,
           impact: (f.impact as Effort | undefined) ?? null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ...(snippet ? { metadata: { codeSnippet: snippet } as any } : {}),
+
+          ...(snippet ? { metadata: { codeSnippet: snippet } as never } : {}),
         };
       })
     );
@@ -237,7 +238,6 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
         tokenCount: totalModuleTokens,
         durationMs: totalDurationMs,
         completedAt: new Date(),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         metadata: {
           costTracking: {
             totalModuleTokens,
@@ -245,7 +245,7 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
             estimatedCostUsd,
             totalDurationMs,
           },
-        } as any,
+        } as never,
       },
     });
     await db.project.update({
@@ -282,6 +282,42 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
           appUrl: env.NEXT_PUBLIC_APP_URL,
         }),
       });
+    }
+    // Slack notification (fire-and-forget)
+    const projectWithOrg = await db.project.findUnique({
+      where: { id: projectId },
+      select: { organizationId: true, organization: { select: { slackConfig: true } } },
+    });
+    if (projectWithOrg?.organizationId) {
+      const slackCfg = projectWithOrg.organization?.slackConfig as Record<string, boolean> | null;
+      const reportUrl = `${env.NEXT_PUBLIC_APP_URL}/projects/${projectId}/analysis`;
+      if (slackCfg?.analysis_complete !== false) {
+        void sendSlackMessage({
+          orgId: projectWithOrg.organizationId,
+          fallbackText: `Analysis complete: ${bundle.repoMetadata.fullName} — Score: ${score}/100`,
+          blocks: analysisCompleteBlocks({
+            projectName: bundle.repoMetadata.fullName,
+            score,
+            summary: summary.slice(0, 200),
+            url: reportUrl,
+          }),
+        });
+      }
+      const hasCritical = dedupedInserts.some((f) => f.severity === "critical");
+      if (hasCritical && slackCfg?.critical_finding !== false) {
+        const critFinding = dedupedInserts.find((f) => f.severity === "critical");
+        if (critFinding) {
+          void sendSlackMessage({
+            orgId: projectWithOrg.organizationId,
+            fallbackText: `Critical finding: ${critFinding.title}`,
+            blocks: criticalFindingBlocks({
+              projectName: bundle.repoMetadata.fullName,
+              findingTitle: critFinding.title,
+              url: reportUrl,
+            }),
+          });
+        }
+      }
     }
   } catch (error) {
     await db.analysis.update({

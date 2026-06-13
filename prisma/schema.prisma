@@ -119,6 +119,11 @@ model Organization {
   logoUrl          String?
   plan             Plan      @default(free)
   stripeCustomerId String?   @unique @db.VarChar(255)
+  slackBotToken    String?   // encrypted
+  slackTeamId      String?   @db.VarChar(255)
+  slackChannelId   String?   @db.VarChar(255)
+  slackChannelName String?   @db.VarChar(255)
+  slackConfig      Json      @default("{}")
   settings         Json      @default("{}")
   createdAt        DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
