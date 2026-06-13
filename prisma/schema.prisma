@@ -181,6 +181,7 @@ model User {
   testimonials      Testimonial[]
   orgMemberships    OrganizationMember[]
   activityEvents    ActivityEvent[]
+  findingComments   FindingComment[]
   referredBy        User?                 @relation("Referrals", fields: [referredById], references: [id])
   referrals         User[]                @relation("Referrals")
   referralEvents    Referral[]            @relation("Referrer")
@@ -439,9 +440,10 @@ model Finding {
   createdAt      DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
 
-  analysis   Analysis @relation(fields: [analysisId], references: [id])
-  project    Project  @relation(fields: [projectId], references: [id])
-  resolvedBy User?    @relation("ResolvedBy", fields: [resolvedById], references: [id])
+  analysis   Analysis         @relation(fields: [analysisId], references: [id])
+  project    Project          @relation(fields: [projectId], references: [id])
+  resolvedBy User?            @relation("ResolvedBy", fields: [resolvedById], references: [id])
+  comments   FindingComment[]
 
   @@index([projectId])
   @@index([analysisId])
@@ -510,6 +512,23 @@ model AdvisorMessage {
   @@index([conversationId])
   @@index([createdAt])
   @@map("advisor_messages")
+}
+
+model FindingComment {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  findingId  String    @db.Uuid
+  userId     String    @db.Uuid
+  content    String    @db.Text
+  editedAt   DateTime? @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6)
+
+  finding Finding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([findingId, createdAt])
+  @@index([userId])
+  @@map("finding_comments")
 }
 
 model ActivityEvent {
