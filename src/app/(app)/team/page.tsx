@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { Users, FolderKanban, BarChart2, AlertTriangle } from "lucide-react";
+import { Users, FolderKanban, BarChart2, AlertTriangle, Activity } from "lucide-react";
+import { ProjectsTable } from "@/components/team/ProjectsTable";
 
 export default async function TeamDashboardPage() {
   const { userId, orgId } = await auth();
@@ -12,12 +13,19 @@ export default async function TeamDashboardPage() {
     select: {
       id: true,
       name: true,
-      _count: { select: { members: true, projects: true } },
+      _count: { select: { members: true } },
       projects: {
         where: { deletedAt: null, status: "active" },
-        select: { id: true, name: true, latestScore: true, lastAnalyzedAt: true },
-        orderBy: { lastAnalyzedAt: "desc" },
-        take: 10,
+        select: {
+          id: true,
+          name: true,
+          latestScore: true,
+          lastAnalyzedAt: true,
+          analysisCount: true,
+          githubOwner: true,
+          githubRepo: true,
+        },
+        orderBy: { lastAnalyzedAt: { sort: "desc", nulls: "last" } },
       },
     },
   });
@@ -25,14 +33,10 @@ export default async function TeamDashboardPage() {
   if (!org) redirect("/dashboard");
 
   const projects = org.projects;
+  const analyzed = projects.filter((p) => p.latestScore != null);
   const avgScore =
-    projects.filter((p) => p.latestScore != null).length > 0
-      ? Math.round(
-          projects
-            .filter((p) => p.latestScore != null)
-            .reduce((sum, p) => sum + (p.latestScore ?? 0), 0) /
-            projects.filter((p) => p.latestScore != null).length
-        )
+    analyzed.length > 0
+      ? Math.round(analyzed.reduce((s, p) => s + (p.latestScore ?? 0), 0) / analyzed.length)
       : null;
 
   const criticalCount = await db.finding.count({
@@ -41,6 +45,23 @@ export default async function TeamDashboardPage() {
       severity: "critical",
       isResolved: false,
     },
+  });
+
+  // Recent activity — last 5 analyses across org projects
+  const recentAnalyses = await db.analysis.findMany({
+    where: {
+      project: { organizationId: org.id },
+      status: "complete",
+    },
+    select: {
+      id: true,
+      score: true,
+      createdAt: true,
+      project: { select: { name: true, id: true } },
+      triggeredBy: { select: { name: true, email: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
   });
 
   return (
@@ -52,11 +73,11 @@ export default async function TeamDashboardPage() {
 
       {/* Stats */}
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={FolderKanban} label="Projects" value={org._count.projects.toString()} />
+        <StatCard icon={FolderKanban} label="Projects" value={projects.length.toString()} />
         <StatCard icon={Users} label="Members" value={org._count.members.toString()} />
         <StatCard
           icon={BarChart2}
-          label="Avg. Score"
+          label="Health Score"
           value={avgScore != null ? `${avgScore}/100` : "—"}
         />
         <StatCard
@@ -67,43 +88,48 @@ export default async function TeamDashboardPage() {
         />
       </div>
 
-      {/* Project list */}
-      <div>
-        <h2 className="mb-4 text-sm font-medium text-[#a0a0a0]">Projects</h2>
-        {projects.length === 0 ? (
-          <div className="rounded-xl border border-[#1f1f1f] bg-[#111111] p-12 text-center">
-            <FolderKanban className="mx-auto mb-3 h-8 w-8 text-[#404040]" />
-            <p className="text-sm text-[#606060]">No projects yet. Create your first project.</p>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-[#1f1f1f] bg-[#111111] divide-y divide-[#1f1f1f] overflow-hidden">
-            {projects.map((project) => (
-              <div key={project.id} className="flex items-center justify-between px-4 py-3">
-                <span className="text-sm text-[#f0f0f0]">{project.name}</span>
-                <div className="flex items-center gap-4">
-                  {project.latestScore != null && (
-                    <span
-                      className={`text-sm font-medium ${
-                        project.latestScore >= 70
-                          ? "text-green-400"
-                          : project.latestScore >= 40
-                            ? "text-yellow-400"
-                            : "text-red-400"
-                      }`}
-                    >
-                      {project.latestScore}/100
-                    </span>
-                  )}
-                  {project.lastAnalyzedAt && (
-                    <span className="text-xs text-[#606060]">
-                      {new Date(project.lastAnalyzedAt).toLocaleDateString()}
-                    </span>
-                  )}
+      <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+        {/* Projects table */}
+        <div>
+          <h2 className="mb-4 text-sm font-medium text-[#a0a0a0]">Projects</h2>
+          <ProjectsTable projects={projects} />
+        </div>
+
+        {/* Recent activity */}
+        <div>
+          <h2 className="mb-4 text-sm font-medium text-[#a0a0a0]">Recent Activity</h2>
+          {recentAnalyses.length === 0 ? (
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#111111] p-6 text-center">
+              <Activity className="mx-auto mb-2 h-6 w-6 text-[#404040]" />
+              <p className="text-xs text-[#606060]">No analyses yet</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-[#1f1f1f] bg-[#111111] divide-y divide-[#1f1f1f] overflow-hidden">
+              {recentAnalyses.map((a) => (
+                <div key={a.id} className="px-4 py-3">
+                  <p className="text-sm font-medium text-[#f0f0f0]">{a.project.name}</p>
+                  <p className="mt-0.5 text-xs text-[#606060]">
+                    {a.triggeredBy.name ?? a.triggeredBy.email} ·{" "}
+                    {new Date(a.createdAt).toLocaleDateString()}
+                    {a.score != null && (
+                      <span
+                        className={`ml-2 font-medium ${
+                          a.score >= 70
+                            ? "text-green-400"
+                            : a.score >= 40
+                              ? "text-yellow-400"
+                              : "text-red-400"
+                        }`}
+                      >
+                        {a.score}/100
+                      </span>
+                    )}
+                  </p>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
