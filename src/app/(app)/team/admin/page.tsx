@@ -108,6 +108,12 @@ export default async function EnterpriseAdminPage() {
           label: "Audit Logs",
           desc: "Tamper-evident event log",
         },
+        {
+          href: "/team/soc2",
+          icon: Shield,
+          label: "SOC 2 Compliance",
+          desc: "Security controls & checklist",
+        },
       ],
     },
     {

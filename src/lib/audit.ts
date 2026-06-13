@@ -83,6 +83,13 @@ export const AuditAction = {
   SUBSCRIPTION_CHANGED: "subscription.changed",
   // Settings
   ORG_SETTINGS_UPDATED: "org.settings_updated",
+  DATA_RETENTION_CHANGED: "org.data_retention_changed",
+  // Webhooks
+  WEBHOOK_CREATED: "webhook.created",
+  WEBHOOK_DELETED: "webhook.deleted",
+  WEBHOOK_UPDATED: "webhook.updated",
+  // Reports
+  REPORT_DOWNLOADED: "report.downloaded",
 } as const;
 
 export type AuditActionValue = (typeof AuditAction)[keyof typeof AuditAction];

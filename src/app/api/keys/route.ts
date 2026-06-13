@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { randomBytes, createHash } from "crypto";
 import { db } from "@/lib/db";
+import { logAuditEvent, AuditAction } from "@/lib/audit";
 
 const MAX_KEYS = 5;
 
@@ -105,6 +106,16 @@ export async function POST(req: Request) {
       expiresAt: true,
       createdAt: true,
     },
+  });
+
+  void logAuditEvent({
+    userId: user.id,
+    action: AuditAction.API_KEY_CREATED,
+    resource: "api_key",
+    resourceId: key.id,
+    resourceName: key.name,
+    metadata: { scopes: keyScopes },
+    req,
   });
 
   return Response.json({ ...key, rawKey: raw }, { status: 201 });

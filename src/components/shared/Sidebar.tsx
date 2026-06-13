@@ -45,6 +45,7 @@ const teamNav = [
   { href: "/team/activity", icon: Activity, label: "Activity" },
   { href: "/team/sso", icon: Shield, label: "SSO" },
   { href: "/team/audit", icon: FileSearch, label: "Audit Logs" },
+  { href: "/team/soc2", icon: Shield, label: "SOC 2 Compliance" },
   { href: "/team/admin", icon: Sliders, label: "Admin Console" },
   { href: "/team/import", icon: UploadCloud, label: "Bulk Import" },
   { href: "/team/usage", icon: BarChart2, label: "Usage Report" },
