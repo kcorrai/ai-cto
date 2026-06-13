@@ -1,0 +1,67 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://aicto:${POSTGRES_PASSWORD:-changeme}@postgres:5432/aicto
+      DIRECT_URL: postgresql://aicto:${POSTGRES_PASSWORD:-changeme}@postgres:5432/aicto
+      UPSTASH_REDIS_REST_URL: http://redis:8079
+      UPSTASH_REDIS_REST_TOKEN: ${REDIS_TOKEN:-local-token}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      BLOB_READ_WRITE_TOKEN: ${BLOB_READ_WRITE_TOKEN}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: aicto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: aicto
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aicto -d aicto"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: hiett/serverless-redis-http:latest
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: ${REDIS_TOKEN:-local-token}
+      SRH_CONNECTION_STRING: redis://redis-store:6379
+    ports:
+      - "8079:80"
+    depends_on:
+      - redis-store
+    restart: unless-stopped
+
+  redis-store:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
