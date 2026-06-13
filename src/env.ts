@@ -48,6 +48,11 @@ export const env = createEnv({
     // Email — Resend (required from TASK-025)
     RESEND_API_KEY: z.string().startsWith("re_").optional(),
 
+    // GitLab integration (optional)
+    GITLAB_CLIENT_ID: z.string().min(1).optional(),
+    GITLAB_CLIENT_SECRET: z.string().min(1).optional(),
+    GITLAB_WEBHOOK_SECRET: z.string().min(1).optional(),
+
     // Linear integration (optional)
     LINEAR_CLIENT_ID: z.string().min(1).optional(),
     LINEAR_CLIENT_SECRET: z.string().min(1).optional(),
@@ -92,6 +97,9 @@ export const env = createEnv({
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
     AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    GITLAB_CLIENT_ID: process.env.GITLAB_CLIENT_ID,
+    GITLAB_CLIENT_SECRET: process.env.GITLAB_CLIENT_SECRET,
+    GITLAB_WEBHOOK_SECRET: process.env.GITLAB_WEBHOOK_SECRET,
     LINEAR_CLIENT_ID: process.env.LINEAR_CLIENT_ID,
     LINEAR_CLIENT_SECRET: process.env.LINEAR_CLIENT_SECRET,
     SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
