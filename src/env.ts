@@ -53,6 +53,10 @@ export const env = createEnv({
     GITLAB_CLIENT_SECRET: z.string().min(1).optional(),
     GITLAB_WEBHOOK_SECRET: z.string().min(1).optional(),
 
+    // Bitbucket integration (optional)
+    BITBUCKET_CLIENT_ID: z.string().min(1).optional(),
+    BITBUCKET_CLIENT_SECRET: z.string().min(1).optional(),
+
     // Linear integration (optional)
     LINEAR_CLIENT_ID: z.string().min(1).optional(),
     LINEAR_CLIENT_SECRET: z.string().min(1).optional(),
@@ -100,6 +104,8 @@ export const env = createEnv({
     GITLAB_CLIENT_ID: process.env.GITLAB_CLIENT_ID,
     GITLAB_CLIENT_SECRET: process.env.GITLAB_CLIENT_SECRET,
     GITLAB_WEBHOOK_SECRET: process.env.GITLAB_WEBHOOK_SECRET,
+    BITBUCKET_CLIENT_ID: process.env.BITBUCKET_CLIENT_ID,
+    BITBUCKET_CLIENT_SECRET: process.env.BITBUCKET_CLIENT_SECRET,
     LINEAR_CLIENT_ID: process.env.LINEAR_CLIENT_ID,
     LINEAR_CLIENT_SECRET: process.env.LINEAR_CLIENT_SECRET,
     SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
