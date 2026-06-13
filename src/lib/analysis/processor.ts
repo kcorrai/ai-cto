@@ -2,6 +2,8 @@ import type { ModuleName, Severity, Effort } from "@prisma/client";
 import { db } from "@/lib/db";
 import { fetchRepository, type RepoBundle } from "@/lib/github/fetcher";
 import { releaseLock, type AnalysisJobPayload } from "@/lib/analysis/shared";
+import { generateText } from "ai";
+import { AI_MODEL } from "@/lib/ai/gateway";
 import { runArchitectureModule } from "@/lib/ai/modules/architecture";
 import { runCodeQualityModule } from "@/lib/ai/modules/code-quality";
 import { runSecurityModule } from "@/lib/ai/modules/security";
@@ -43,6 +45,49 @@ async function pooled<T, R>(
 }
 
 const MODULE_CONCURRENCY = 4;
+
+type RawCustomFinding = {
+  severity?: string;
+  title?: string;
+  description?: string;
+  recommendation?: string;
+  filePath?: string;
+};
+
+async function runCustomModule(
+  moduleId: string,
+  moduleName: string,
+  prompt: string,
+  bundle: RepoBundle
+): Promise<RawCustomFinding[]> {
+  const filesSummary = bundle.files
+    .slice(0, 30)
+    .map((f) => `--- ${f.path} ---\n${f.content.slice(0, 500)}`)
+    .join("\n\n");
+
+  const userPrompt = `${prompt}\n\nRepository: ${bundle.repoMetadata.fullName}\nLanguage: ${bundle.repoMetadata.language ?? "unknown"}\n\nFiles (sample):\n${filesSummary}\n\nReturn a JSON array of findings. Each finding must have: severity (critical|high|medium|low|info), title (string), description (string), recommendation (string). Optional: filePath (string).`;
+
+  try {
+    const { text } = await generateText({
+      model: AI_MODEL,
+      system:
+        "You are a code analysis expert. Analyze the provided repository and return findings as a JSON array. Output ONLY valid JSON, no explanation.",
+      prompt: userPrompt,
+      maxOutputTokens: 2000,
+    });
+
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return [];
+    const parsed = JSON.parse(jsonMatch[0]) as unknown[];
+    return parsed.filter(
+      (f): f is RawCustomFinding =>
+        typeof f === "object" && f !== null && "title" in f && "severity" in f
+    );
+  } catch {
+    console.error(`Custom module ${moduleId} (${moduleName}) failed`);
+    return [];
+  }
+}
 
 const MODULES: Array<{ name: ModuleName; run: (b: RepoBundle) => Promise<{ score: number }> }> = [
   { name: "architecture", run: runArchitectureModule },
@@ -100,6 +145,51 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
       return { name, score: result.score };
     });
 
+    // Run custom modules (enterprise orgs only)
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { organizationId: true },
+    });
+    const customFindings: Array<{
+      analysisId: string;
+      projectId: string;
+      module: string;
+      severity: Severity;
+      title: string;
+      description: string | null;
+      recommendation: string | null;
+      filePath: string | null;
+      effort: Effort | null;
+      impact: Effort | null;
+    }> = [];
+    if (project?.organizationId) {
+      const customModules = await db.customModule.findMany({
+        where: { organizationId: project.organizationId, enabled: true },
+      });
+      for (const cm of customModules) {
+        const findings = await runCustomModule(cm.id, cm.name, cm.prompt, bundle);
+        for (const f of findings) {
+          if (!f.title || !f.severity) continue;
+          const validSeverities: Severity[] = ["critical", "high", "medium", "low", "info"];
+          const severity = validSeverities.includes(f.severity as Severity)
+            ? (f.severity as Severity)
+            : "info";
+          customFindings.push({
+            analysisId,
+            projectId,
+            module: `custom:${cm.name}`,
+            severity,
+            title: f.title,
+            description: f.description ?? null,
+            recommendation: f.recommendation ?? null,
+            filePath: f.filePath ?? null,
+            effort: null,
+            impact: null,
+          });
+        }
+      }
+    }
+
     await db.analysis.update({
       where: { id: analysisId },
       data: { status: "synthesizing", progress: 85 },
@@ -132,25 +222,28 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
       return lines.slice(0, 60).join("\n");
     }
 
-    const findingInserts = moduleRecords.flatMap((m) =>
-      (m.findings as RawFinding[]).map((f) => {
-        const snippet = f.filePath ? extractSnippet(f.filePath) : null;
-        return {
-          analysisId,
-          projectId,
-          module: m.module as string,
-          severity: f.severity as Severity,
-          title: f.title,
-          description: f.description ?? null,
-          recommendation: f.recommendation ?? null,
-          filePath: f.filePath ?? null,
-          effort: (f.effort as Effort | undefined) ?? null,
-          impact: (f.impact as Effort | undefined) ?? null,
+    const findingInserts = [
+      ...moduleRecords.flatMap((m) =>
+        (m.findings as RawFinding[]).map((f) => {
+          const snippet = f.filePath ? extractSnippet(f.filePath) : null;
+          return {
+            analysisId,
+            projectId,
+            module: m.module as string,
+            severity: f.severity as Severity,
+            title: f.title,
+            description: f.description ?? null,
+            recommendation: f.recommendation ?? null,
+            filePath: f.filePath ?? null,
+            effort: (f.effort as Effort | undefined) ?? null,
+            impact: (f.impact as Effort | undefined) ?? null,
 
-          ...(snippet ? { metadata: { codeSnippet: snippet } as never } : {}),
-        };
-      })
-    );
+            ...(snippet ? { metadata: { codeSnippet: snippet } as never } : {}),
+          };
+        })
+      ),
+      ...customFindings,
+    ];
     // Deduplicate findings across modules: same filePath + similar title → keep the highest-severity one
     const severityRank: Record<string, number> = {
       critical: 5,

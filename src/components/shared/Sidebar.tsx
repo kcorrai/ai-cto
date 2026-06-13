@@ -26,6 +26,7 @@ import {
   FileSearch,
   Sliders,
   UploadCloud,
+  Puzzle,
 } from "lucide-react";
 import { useState } from "react";
 import { CHANGELOG } from "@/lib/changelog";
@@ -48,6 +49,7 @@ const teamNav = [
   { href: "/team/soc2", icon: Shield, label: "SOC 2 Compliance" },
   { href: "/team/admin", icon: Sliders, label: "Admin Console" },
   { href: "/team/import", icon: UploadCloud, label: "Bulk Import" },
+  { href: "/team/custom-modules", icon: Puzzle, label: "Custom Modules" },
   { href: "/team/usage", icon: BarChart2, label: "Usage Report" },
   { href: "/team/settings", icon: Settings, label: "Team Settings" },
 ];

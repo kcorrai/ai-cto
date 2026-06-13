@@ -155,6 +155,7 @@ model Organization {
   activityEvents   ActivityEvent[]
   outboundWebhooks OutboundWebhook[]
   auditLogs        AuditLog[]
+  customModules    CustomModule[]
 
   @@index([clerkOrgId])
   @@map("organizations")
@@ -658,3 +659,20 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+
+model CustomModule {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @db.Uuid
+  name           String    @db.VarChar(100)
+  description    String?
+  prompt         String
+  outputSchema   Json      @default("{}")
+  enabled        Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("custom_modules")
+}
