@@ -2,6 +2,8 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { SSOSettings } from "@/components/team/SSOSettings";
+import { ScimSettings } from "@/components/team/ScimSettings";
+import { env } from "@/env";
 
 type SamlConnection = {
   id: string;
@@ -51,13 +53,21 @@ export default async function SSOPage() {
     }
   }
 
+  const settings = org.settings as { scimToken?: string } | null;
+  const hasScimToken = !!settings?.scimToken;
+
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-xl font-semibold text-[#f0f0f0]">Single Sign-On</h1>
-        <p className="mt-1 text-sm text-[#a0a0a0]">Configure SAML 2.0 SSO for your organization</p>
+        <h1 className="text-xl font-semibold text-[#f0f0f0]">SSO & Provisioning</h1>
+        <p className="mt-1 text-sm text-[#a0a0a0]">
+          Configure single sign-on and automated user provisioning
+        </p>
       </div>
-      <SSOSettings plan={org.plan} initialConnections={connections} />
+      <div className="max-w-2xl space-y-8">
+        <SSOSettings plan={org.plan} initialConnections={connections} />
+        <ScimSettings plan={org.plan} hasToken={hasScimToken} appUrl={env.NEXT_PUBLIC_APP_URL} />
+      </div>
     </div>
   );
 }

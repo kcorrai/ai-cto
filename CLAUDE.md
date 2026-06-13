@@ -10,12 +10,12 @@ Every session starts here. Every session ends by updating STATE.
 ## STATE
 
 ```
-PHASE:        5 — Team (DONE → 6 — Enterprise next)
-ACTIVE TASK:  none — TASK-100 complete
-STATUS:       DONE
+PHASE:        6 — Enterprise (in progress)
+ACTIVE TASK:  TASK-102 — SCIM Provisioning
+STATUS:       IN PROGRESS
 LAST UPDATED: 2026-06-13
 BLOCKER:      none
-LAST DONE:    TASK-100 (2026-06-13)
+LAST DONE:    TASK-101 (2026-06-13)
 ```
 
 ---
