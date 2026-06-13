@@ -22,6 +22,7 @@ import {
   Check,
   Plus,
   Activity,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { CHANGELOG } from "@/lib/changelog";
@@ -39,6 +40,7 @@ const teamNav = [
   { href: "/team", icon: LayoutGrid, label: "Team Dashboard" },
   { href: "/team/members", icon: Users, label: "Members" },
   { href: "/team/activity", icon: Activity, label: "Activity" },
+  { href: "/team/sso", icon: Shield, label: "SSO" },
   { href: "/team/settings", icon: Settings, label: "Team Settings" },
 ];
 
