@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Users } from "lucide-react";
-import Link from "next/link";
+import { InviteForm } from "@/components/team/InviteForm";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -19,7 +19,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default async function TeamMembersPage() {
-  const { userId, orgId, orgSlug } = await auth();
+  const { userId, orgId, orgRole } = await auth();
   if (!userId || !orgId) redirect("/dashboard");
 
   const org = await db.organization.findUnique({
@@ -41,21 +41,15 @@ export default async function TeamMembersPage() {
 
   if (!org) redirect("/dashboard");
 
+  const isAdmin = orgRole === "org:owner" || orgRole === "org:admin";
+
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-[#f0f0f0]">Members</h1>
-          <p className="mt-1 text-sm text-[#a0a0a0]">
-            {org.members.length} {org.members.length === 1 ? "member" : "members"} in {org.name}
-          </p>
-        </div>
-        <Link
-          href={`/orgs/${orgSlug}/settings`}
-          className="rounded-md bg-[#3b82f6] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#2563eb]"
-        >
-          Invite Members
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-[#f0f0f0]">Members</h1>
+        <p className="mt-1 text-sm text-[#a0a0a0]">
+          {org.members.length} {org.members.length === 1 ? "member" : "members"} in {org.name}
+        </p>
       </div>
 
       {org.members.length === 0 ? (
@@ -94,6 +88,8 @@ export default async function TeamMembersPage() {
           ))}
         </div>
       )}
+
+      <InviteForm isAdmin={isAdmin} />
     </div>
   );
 }
