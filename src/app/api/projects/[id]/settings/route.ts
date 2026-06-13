@@ -5,6 +5,8 @@ import { z } from "zod";
 
 const UpdateSchema = z.object({
   autoAnalyze: z.boolean().optional(),
+  monitoringEnabled: z.boolean().optional(),
+  benchmarkOptIn: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,18 +27,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const result = UpdateSchema.safeParse(body);
   if (!result.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
-  // Auto-analyze is a Pro+ feature
   if (result.data.autoAnalyze && user.plan === "free") {
     return NextResponse.json({ error: "Pro plan required for auto-analyze" }, { status: 403 });
   }
+  if (result.data.monitoringEnabled && user.plan === "free") {
+    return NextResponse.json({ error: "Pro plan required for monitoring" }, { status: 403 });
+  }
 
-  const data: { autoAnalyze?: boolean } = {};
+  const data: Record<string, boolean> = {};
   if (result.data.autoAnalyze !== undefined) data.autoAnalyze = result.data.autoAnalyze;
+  if (result.data.monitoringEnabled !== undefined)
+    data.monitoringEnabled = result.data.monitoringEnabled;
+  if (result.data.benchmarkOptIn !== undefined) data.benchmarkOptIn = result.data.benchmarkOptIn;
 
   const updated = await db.project.update({
     where: { id: projectId },
     data,
-    select: { id: true, autoAnalyze: true },
+    select: { id: true, autoAnalyze: true, monitoringEnabled: true, benchmarkOptIn: true },
   });
 
   return NextResponse.json(updated);

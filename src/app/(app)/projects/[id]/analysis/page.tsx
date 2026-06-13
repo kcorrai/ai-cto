@@ -16,6 +16,7 @@ import { TechnicalDebt } from "@/features/analyses/components/TechnicalDebt";
 import { RefactorPlan } from "@/features/analyses/components/RefactorPlan";
 import { GrowthAdvisor } from "@/features/analyses/components/GrowthAdvisor";
 import { MonetizationAdvisor } from "@/features/analyses/components/MonetizationAdvisor";
+import { BenchmarkComparison } from "@/components/benchmarks/BenchmarkComparison";
 import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Analysis — AI CTO" };
 
@@ -297,6 +298,11 @@ export default async function AnalysisPage(props: {
             competitorResult as Parameters<typeof CompetitorAnalysis>[0]["initialResult"]
           }
         />
+      </div>
+
+      {/* Benchmark Comparison */}
+      <div className="mt-6">
+        <BenchmarkComparison analysisId={latest.id} />
       </div>
 
       {/* Testimonial prompt — shown after completed analysis */}

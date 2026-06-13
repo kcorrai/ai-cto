@@ -319,6 +319,7 @@ model Project {
   autoAnalyze        Boolean       @default(false)
   monitoringEnabled  Boolean       @default(false)
   monitoringLastRun  DateTime?     @db.Timestamptz(6)
+  benchmarkOptIn     Boolean       @default(false)
   status             ProjectStatus @default(active)
   settings       Json          @default("{}")
   createdAt      DateTime      @default(now()) @db.Timestamptz(6)
