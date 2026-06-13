@@ -175,7 +175,7 @@ model OrganizationMember {
   updatedAt      DateTime @updatedAt @db.Timestamptz(6)
 
   organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -226,6 +226,7 @@ model User {
   @@index([email])
   @@index([stripeCustomerId])
   @@index([referralCode])
+  @@index([referredById])
   @@map("users")
 }
 
@@ -261,8 +262,8 @@ model Referral {
   creditAmount   Int            @default(1000) // cents ($10)
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
 
-  referrer     User @relation("Referrer", fields: [referrerId], references: [id])
-  referred     User @relation("Referred", fields: [referredUserId], references: [id])
+  referrer     User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred     User @relation("Referred", fields: [referredUserId], references: [id], onDelete: Cascade)
 
   @@unique([referredUserId])
   @@index([referrerId])
@@ -291,6 +292,7 @@ model Subscription {
 
   @@index([userId])
   @@index([organizationId])
+  @@index([stripeSubscriptionId])
   @@map("subscriptions")
 }
 
@@ -355,7 +357,7 @@ model ApiKey {
   isActive   Boolean   @default(true)
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([keyHash])
@@ -424,7 +426,7 @@ model Analysis {
   updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
   completedAt     DateTime?      @db.Timestamptz(6)
 
-  project         Project          @relation(fields: [projectId], references: [id])
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   triggeredBy     User             @relation("TriggeredBy", fields: [triggeredById], references: [id])
   modules         AnalysisModule[]
   findingRecords  Finding[]
@@ -434,6 +436,7 @@ model Analysis {
   @@index([triggeredById])
   @@index([status])
   @@index([createdAt(sort: Desc)])
+  @@index([projectId, status, createdAt(sort: Desc)])
   @@map("analyses")
 }
 
@@ -451,7 +454,7 @@ model AnalysisModule {
   createdAt    DateTime     @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime     @updatedAt @db.Timestamptz(6)
 
-  analysis Analysis @relation(fields: [analysisId], references: [id])
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   @@unique([analysisId, module])
   @@index([analysisId])
@@ -482,8 +485,8 @@ model Finding {
   createdAt      DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
 
-  analysis   Analysis         @relation(fields: [analysisId], references: [id])
-  project    Project          @relation(fields: [projectId], references: [id])
+  analysis   Analysis         @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   resolvedBy User?            @relation("ResolvedBy", fields: [resolvedById], references: [id])
   assignedTo User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
   comments   FindingComment[]
@@ -492,6 +495,7 @@ model Finding {
   @@index([analysisId])
   @@index([severity])
   @@index([isResolved])
+  @@index([projectId, isResolved, severity])
   @@map("findings")
 }
 
@@ -511,8 +515,8 @@ model Report {
   createdAt     DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime   @updatedAt @db.Timestamptz(6)
 
-  analysis    Analysis @relation(fields: [analysisId], references: [id])
-  project     Project  @relation(fields: [projectId], references: [id])
+  analysis    Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   generatedBy User     @relation(fields: [generatedById], references: [id])
 
   @@index([analysisId])
@@ -530,7 +534,7 @@ model AdvisorConversation {
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
 
-  project  Project?         @relation(fields: [projectId], references: [id])
+  project  Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user     User             @relation(fields: [userId], references: [id])
   messages AdvisorMessage[]
 
@@ -586,7 +590,7 @@ model ActivityEvent {
   createdAt      DateTime          @default(now()) @db.Timestamptz(6)
 
   organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt(sort: Desc)])
   @@index([userId])
@@ -660,7 +664,7 @@ model AuditLog {
   userAgent      String?
   createdAt      DateTime  @default(now()) @db.Timestamptz(6)
 
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId, createdAt(sort: Desc)])
