@@ -25,7 +25,6 @@ import { generateExecutiveSummary } from "@/lib/ai/synthesis";
 import type { CriticalFinding } from "@/lib/ai/synthesis";
 import { sendEmail } from "@/lib/email";
 import { AnalysisCompleteEmail } from "@/emails/AnalysisCompleteEmail";
-import { AnalysisFailedEmail } from "@/emails/AnalysisFailedEmail";
 import { sendSlackMessage, analysisCompleteBlocks, criticalFindingBlocks } from "@/lib/slack";
 import { dispatchWebhookEvent } from "@/lib/webhooks";
 import { env } from "@/env";
@@ -146,7 +145,14 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
     let completedCount = 0;
     const totalModules = activeModules.length;
     const rawResults = await pooled(activeModules, MODULE_CONCURRENCY, async ({ name, run }) => {
-      const result = await run(bundle);
+      let result: { score: number };
+      try {
+        result = await run(bundle);
+      } catch {
+        // Per-module retry: 1 attempt after 10s delay
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        result = await run(bundle);
+      }
       completedCount++;
       const progress = Math.round(20 + (completedCount / totalModules) * 60);
       await db.analysis.update({ where: { id: analysisId }, data: { progress } }).catch(() => null);
@@ -478,33 +484,15 @@ export async function processAnalysis(message: AnalysisJobPayload): Promise<void
       });
     }
   } catch (error) {
-    await db.analysis.update({
-      where: { id: analysisId },
-      data: {
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      },
-    });
-
-    const userForFailEmail = await db.user
-      .findUnique({ where: { id: userId }, select: { email: true, name: true } })
+    await db.analysis
+      .update({
+        where: { id: analysisId },
+        data: {
+          status: "failed",
+          errorMessage: error instanceof Error ? error.message : "Unknown error",
+        },
+      })
       .catch(() => null);
-    if (userForFailEmail) {
-      const project = await db.project
-        .findUnique({ where: { id: projectId }, select: { githubOwner: true, githubRepo: true } })
-        .catch(() => null);
-      const projectName = project ? `${project.githubOwner}/${project.githubRepo}` : "your project";
-      void sendEmail({
-        to: userForFailEmail.email,
-        subject: `Analysis failed for ${projectName}`,
-        react: AnalysisFailedEmail({
-          name: userForFailEmail.name ?? userForFailEmail.email,
-          projectName,
-          retryUrl: `${env.NEXT_PUBLIC_APP_URL}/projects/${projectId}/overview`,
-        }),
-      });
-    }
-
     throw error;
   } finally {
     await releaseLock(projectId);

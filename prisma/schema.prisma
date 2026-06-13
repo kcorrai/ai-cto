@@ -418,6 +418,8 @@ model Analysis {
   tokenCount      Int?
   durationMs      Int?
   errorMessage    String?
+  retryCount      Int            @default(0)
+  lastError       String?
   blobPath        String?
   isPublic        Boolean        @default(false)
   publicToken     String?        @unique @db.VarChar(64)
