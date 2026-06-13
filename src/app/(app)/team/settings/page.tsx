@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { SlackSettings } from "@/components/team/SlackSettings";
 import { WebhookManager } from "@/components/team/WebhookManager";
 import { TeamBilling } from "@/components/team/TeamBilling";
+import { InvoiceBilling } from "@/components/team/InvoiceBilling";
 import { RetentionSettings } from "@/components/team/RetentionSettings";
 import { WhiteLabelSettings } from "@/components/team/WhiteLabelSettings";
 import { GHESettings } from "@/components/team/GHESettings";
@@ -95,6 +96,7 @@ export default async function TeamSettingsPage() {
 
       <div className="max-w-2xl space-y-6">
         <TeamBilling plan={org.plan} hasStripeCustomer={!!org.stripeCustomerId} />
+        <InvoiceBilling plan={org.plan} />
         <SlackSettings connected={connected} channelName={org.slackChannelName} config={config} />
         <WebhookManager initial={webhooks} />
         <RetentionSettings plan={org.plan} initial={retentionPolicy} />
