@@ -67,6 +67,9 @@ export default async function SettingsPage() {
   const linearUserName = userSettings.linearUserName as string | undefined;
   const emailOnComplete = Boolean(userSettings.emailOnComplete ?? true);
   const weeklyDigest = Boolean(userSettings.weeklyDigest ?? false);
+  const emailOnCritical = Boolean(userSettings.emailOnCritical ?? true);
+  const emailOnAssigned = Boolean(userSettings.emailOnAssigned ?? true);
+  const emailOnMention = Boolean(userSettings.emailOnMention ?? true);
   const isPro = dbUser.plan !== "free";
   const limits = getPlanLimits(dbUser.plan);
 
@@ -87,6 +90,10 @@ export default async function SettingsPage() {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  const isTeamMember = await db.organizationMember
+    .count({ where: { userId: dbUser.id } })
+    .then((c) => c > 0);
 
   const [referralCode, referralStats] = await Promise.all([
     ensureReferralCode(dbUser.id),
@@ -220,7 +227,11 @@ export default async function SettingsPage() {
           <SettingsNotifications
             emailOnComplete={emailOnComplete}
             weeklyDigest={weeklyDigest}
+            emailOnCritical={emailOnCritical}
+            emailOnAssigned={emailOnAssigned}
+            emailOnMention={emailOnMention}
             isPro={isPro}
+            isTeamMember={isTeamMember}
           />
         </Section>
 

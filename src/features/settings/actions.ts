@@ -6,6 +6,9 @@ import { db } from "@/lib/db";
 type NotificationSettings = {
   emailOnComplete: boolean;
   weeklyDigest: boolean;
+  emailOnCritical?: boolean;
+  emailOnAssigned?: boolean;
+  emailOnMention?: boolean;
 };
 
 export async function updateNotificationSettings(
@@ -28,6 +31,9 @@ export async function updateNotificationSettings(
         ...current,
         emailOnComplete: settings.emailOnComplete,
         weeklyDigest: settings.weeklyDigest,
+        emailOnCritical: settings.emailOnCritical ?? current.emailOnCritical ?? true,
+        emailOnAssigned: settings.emailOnAssigned ?? current.emailOnAssigned ?? true,
+        emailOnMention: settings.emailOnMention ?? current.emailOnMention ?? true,
       },
     },
   });
