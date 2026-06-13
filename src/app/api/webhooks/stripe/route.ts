@@ -66,7 +66,7 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
   const existing = await db.subscription.findUnique({
     where: { stripeSubscriptionId: sub.id },
-    select: { userId: true },
+    select: { userId: true, organizationId: true },
   });
   if (!existing) return;
 
@@ -75,7 +75,14 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
       where: { stripeSubscriptionId: sub.id },
       data: { status: "canceled", canceledAt: new Date() },
     });
-    await tx.user.update({ where: { id: existing.userId }, data: { plan: "free" } });
+    if (existing.userId) {
+      await tx.user.update({ where: { id: existing.userId }, data: { plan: "free" } });
+    } else if (existing.organizationId) {
+      await tx.organization.update({
+        where: { id: existing.organizationId },
+        data: { plan: "free" },
+      });
+    }
   });
 }
 

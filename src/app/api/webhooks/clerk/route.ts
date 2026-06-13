@@ -98,5 +98,101 @@ export async function POST(req: Request) {
     });
   }
 
+  if (type === "organization.created") {
+    await db.organization.create({
+      data: {
+        clerkOrgId: data.id as string,
+        name: data.name as string,
+        slug: data.slug as string,
+        logoUrl: (data.image_url as string) || null,
+      },
+    });
+  }
+
+  if (type === "organization.updated") {
+    await db.organization.update({
+      where: { clerkOrgId: data.id as string },
+      data: {
+        name: data.name as string,
+        slug: data.slug as string,
+        logoUrl: (data.image_url as string) || null,
+      },
+    });
+  }
+
+  if (type === "organization.deleted") {
+    await db.organization.update({
+      where: { clerkOrgId: data.id as string },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  if (type === "organizationMembership.created") {
+    const orgData = data.organization as { id: string };
+    const memberData = data.public_user_data as { user_id: string };
+
+    const [org, user] = await Promise.all([
+      db.organization.findUnique({ where: { clerkOrgId: orgData.id }, select: { id: true } }),
+      db.user.findUnique({ where: { clerkId: memberData.user_id }, select: { id: true } }),
+    ]);
+
+    if (org && user) {
+      const role =
+        (data.role as string) === "org:admin"
+          ? "admin"
+          : (data.role as string) === "org:member"
+            ? "editor"
+            : "viewer";
+      await db.organizationMember.upsert({
+        where: { organizationId_userId: { organizationId: org.id, userId: user.id } },
+        create: {
+          organizationId: org.id,
+          userId: user.id,
+          role: role as "admin" | "editor" | "viewer",
+        },
+        update: { role: role as "admin" | "editor" | "viewer" },
+      });
+    }
+  }
+
+  if (type === "organizationMembership.updated") {
+    const orgData = data.organization as { id: string };
+    const memberData = data.public_user_data as { user_id: string };
+
+    const [org, user] = await Promise.all([
+      db.organization.findUnique({ where: { clerkOrgId: orgData.id }, select: { id: true } }),
+      db.user.findUnique({ where: { clerkId: memberData.user_id }, select: { id: true } }),
+    ]);
+
+    if (org && user) {
+      const role =
+        (data.role as string) === "org:admin"
+          ? "admin"
+          : (data.role as string) === "org:member"
+            ? "editor"
+            : "viewer";
+      await db.organizationMember.update({
+        where: { organizationId_userId: { organizationId: org.id, userId: user.id } },
+        data: { role: role as "admin" | "editor" | "viewer" },
+      });
+    }
+  }
+
+  if (type === "organizationMembership.deleted") {
+    const orgData = data.organization as { id: string };
+    const memberData = data.public_user_data as { user_id: string };
+
+    const [org, user] = await Promise.all([
+      db.organization.findUnique({ where: { clerkOrgId: orgData.id }, select: { id: true } }),
+      db.user.findUnique({ where: { clerkId: memberData.user_id }, select: { id: true } }),
+    ]);
+
+    if (org && user) {
+      await db.organizationMember.deleteMany({
+        where: { organizationId: org.id, userId: user.id },
+      });
+    }
+  }
+
   return new Response("OK", { status: 200 });
 }

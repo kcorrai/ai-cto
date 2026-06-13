@@ -10,12 +10,12 @@ Every session starts here. Every session ends by updating STATE.
 ## STATE
 
 ```
-PHASE:        4 — Growth
-ACTIVE TASK:  none — TASK-085 complete
+PHASE:        5 — Team
+ACTIVE TASK:  none — TASK-086 complete
 STATUS:       DONE
 LAST UPDATED: 2026-06-13
 BLOCKER:      none
-LAST DONE:    TASK-085 (2026-06-13)
+LAST DONE:    TASK-086 (2026-06-13)
 ```
 
 ---

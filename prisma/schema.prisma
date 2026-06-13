@@ -111,6 +111,44 @@ enum MessageRole {
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
+model Organization {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkOrgId       String    @unique @db.VarChar(255)
+  name             String    @db.VarChar(255)
+  slug             String    @unique @db.VarChar(255)
+  logoUrl          String?
+  plan             Plan      @default(free)
+  stripeCustomerId String?   @unique @db.VarChar(255)
+  settings         Json      @default("{}")
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt        DateTime? @db.Timestamptz(6)
+
+  members       OrganizationMember[]
+  projects      Project[]
+  subscriptions Subscription[]
+
+  @@index([clerkOrgId])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
+  role           OrgRole  @default(viewer)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
 model User {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clerkId           String    @unique @db.VarChar(255)
@@ -140,6 +178,7 @@ model User {
   conversations     AdvisorConversation[]
   apiKeys           ApiKey[]
   testimonials      Testimonial[]
+  orgMemberships    OrganizationMember[]
   referredBy        User?                 @relation("Referrals", fields: [referredById], references: [id])
   referrals         User[]                @relation("Referrals")
   referralEvents    Referral[]            @relation("Referrer")
@@ -150,6 +189,13 @@ model User {
   @@index([stripeCustomerId])
   @@index([referralCode])
   @@map("users")
+}
+
+enum OrgRole {
+  owner
+  admin
+  editor
+  viewer
 }
 
 enum ReferralStatus {
@@ -178,7 +224,8 @@ model Referral {
 
 model Subscription {
   id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId               String             @db.Uuid
+  userId               String?            @db.Uuid
+  organizationId       String?            @db.Uuid
   stripeSubscriptionId String             @unique @db.VarChar(255)
   stripePriceId        String             @db.VarChar(255)
   status               SubscriptionStatus
@@ -192,15 +239,18 @@ model Subscription {
   createdAt            DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt            DateTime           @updatedAt @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([userId])
+  @@index([organizationId])
   @@map("subscriptions")
 }
 
 model Project {
   id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String        @db.Uuid
+  organizationId String?       @db.Uuid
   name           String        @db.VarChar(255)
   slug           String        @db.VarChar(255)
   description    String?
@@ -227,6 +277,7 @@ model Project {
   deletedAt      DateTime?     @db.Timestamptz(6)
 
   user          User                  @relation(fields: [userId], references: [id])
+  organization  Organization?         @relation(fields: [organizationId], references: [id])
   analyses      Analysis[]
   findings      Finding[]
   reports       Report[]
@@ -234,6 +285,7 @@ model Project {
 
   @@unique([userId, slug])
   @@index([userId])
+  @@index([organizationId])
   @@index([githubRepoId])
   @@index([status])
   @@index([isLeaderboard])
