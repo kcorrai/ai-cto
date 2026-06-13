@@ -47,6 +47,7 @@ const teamNav = [
   { href: "/team/audit", icon: FileSearch, label: "Audit Logs" },
   { href: "/team/admin", icon: Sliders, label: "Admin Console" },
   { href: "/team/import", icon: UploadCloud, label: "Bulk Import" },
+  { href: "/team/usage", icon: BarChart2, label: "Usage Report" },
   { href: "/team/settings", icon: Settings, label: "Team Settings" },
 ];
 
