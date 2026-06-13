@@ -110,6 +110,13 @@ enum WebhookEvent {
   member_joined
 }
 
+enum ScheduleFrequency {
+  daily
+  weekly
+  biweekly
+  monthly
+}
+
 enum WebhookDeliveryStatus {
   pending
   success
@@ -308,12 +315,13 @@ model Project {
   updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
   deletedAt      DateTime?     @db.Timestamptz(6)
 
-  user          User                  @relation(fields: [userId], references: [id])
-  organization  Organization?         @relation(fields: [organizationId], references: [id])
-  analyses      Analysis[]
-  findings      Finding[]
-  reports       Report[]
-  conversations AdvisorConversation[]
+  user              User                  @relation(fields: [userId], references: [id])
+  organization      Organization?         @relation(fields: [organizationId], references: [id])
+  analyses          Analysis[]
+  findings          Finding[]
+  reports           Report[]
+  conversations     AdvisorConversation[]
+  scheduledAnalysis ScheduledAnalysis?
 
   @@unique([userId, slug])
   @@index([userId])
@@ -570,6 +578,23 @@ model ActivityEvent {
   @@index([organizationId, createdAt(sort: Desc)])
   @@index([userId])
   @@map("activity_events")
+}
+
+model ScheduledAnalysis {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String            @db.Uuid
+  frequency   ScheduleFrequency
+  enabled     Boolean           @default(true)
+  nextRunAt   DateTime          @db.Timestamptz(6)
+  lastRunAt   DateTime?         @db.Timestamptz(6)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(6)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId])
+  @@index([nextRunAt])
+  @@map("scheduled_analyses")
 }
 
 model OutboundWebhook {

@@ -56,6 +56,9 @@ export const env = createEnv({
     SLACK_CLIENT_ID: z.string().min(1).optional(),
     SLACK_CLIENT_SECRET: z.string().min(1).optional(),
     SLACK_SIGNING_SECRET: z.string().min(1).optional(),
+
+    // Cron jobs
+    CRON_SECRET: z.string().min(1).optional(),
   },
 
   client: {
@@ -94,6 +97,7 @@ export const env = createEnv({
     SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
     SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET,
     SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET,
+    CRON_SECRET: process.env.CRON_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   },
