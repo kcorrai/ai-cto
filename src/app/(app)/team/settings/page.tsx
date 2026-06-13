@@ -4,12 +4,22 @@ import { db } from "@/lib/db";
 import { SlackSettings } from "@/components/team/SlackSettings";
 import { WebhookManager } from "@/components/team/WebhookManager";
 import { TeamBilling } from "@/components/team/TeamBilling";
+import { RetentionSettings } from "@/components/team/RetentionSettings";
 
 type SlackConfig = {
   analysis_complete: boolean;
   critical_finding: boolean;
   weekly_digest: boolean;
   findings_resolved: boolean;
+};
+
+type OrgSettings = {
+  retention?: {
+    analysisMonths: number;
+    auditLogMonths: number;
+    deleteRepoContentAfterAnalysis: boolean;
+  };
+  [key: string]: unknown;
 };
 
 export default async function TeamSettingsPage() {
@@ -25,6 +35,7 @@ export default async function TeamSettingsPage() {
       slackTeamId: true,
       slackChannelName: true,
       slackConfig: true,
+      settings: true,
       outboundWebhooks: {
         select: {
           id: true,
@@ -50,6 +61,13 @@ export default async function TeamSettingsPage() {
     createdAt: w.createdAt.toISOString(),
   }));
 
+  const orgSettings = (org.settings ?? {}) as OrgSettings;
+  const retentionPolicy = orgSettings.retention ?? {
+    analysisMonths: 12,
+    auditLogMonths: 84,
+    deleteRepoContentAfterAnalysis: false,
+  };
+
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
@@ -61,6 +79,7 @@ export default async function TeamSettingsPage() {
         <TeamBilling plan={org.plan} hasStripeCustomer={!!org.stripeCustomerId} />
         <SlackSettings connected={connected} channelName={org.slackChannelName} config={config} />
         <WebhookManager initial={webhooks} />
+        <RetentionSettings plan={org.plan} initial={retentionPolicy} />
       </div>
     </div>
   );
