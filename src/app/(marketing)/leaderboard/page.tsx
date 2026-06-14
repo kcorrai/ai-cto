@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: "SaaS Score Leaderboard — AI CTO",
     description:
       "Technical rankings of popular open-source projects. Architecture, security, code quality, and SaaS readiness scores.",
-    images: "/og.png",
+    images: "/api/og",
   },
   twitter: { card: "summary_large_image" },
 };

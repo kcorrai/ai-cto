@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     title: "AI CTO — Your AI Technical Co-Founder",
     description:
       "Analyze your GitHub repository like a senior CTO. Get actionable insights on architecture, security, code quality, and SaaS readiness in minutes.",
-    images: "/og.png",
+    images: "/api/og",
   },
 };
 
