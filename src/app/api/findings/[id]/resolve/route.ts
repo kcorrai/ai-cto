@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { cacheInvalidate, cacheKeys } from "@/lib/cache";
 
 export async function PATCH(_req: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -16,7 +17,7 @@ export async function PATCH(_req: Request, props: { params: Promise<{ id: string
   // Verify ownership — finding must belong to a project owned by this user
   const finding = await db.finding.findFirst({
     where: { id },
-    select: { id: true, project: { select: { userId: true } } },
+    select: { id: true, analysisId: true, project: { select: { userId: true } } },
   });
 
   if (!finding) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -28,6 +29,9 @@ export async function PATCH(_req: Request, props: { params: Promise<{ id: string
     where: { id },
     data: { isResolved: true, resolvedAt: new Date(), resolvedById: user.id },
   });
+
+  // Invalidate analysis cache so next load reflects the resolved finding
+  await cacheInvalidate(cacheKeys.analysis(finding.analysisId));
 
   return NextResponse.json({ ok: true });
 }

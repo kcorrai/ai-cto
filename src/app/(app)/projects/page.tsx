@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Plus, FolderKanban } from "lucide-react";
+import { cacheGet, cacheSet, cacheKeys, cacheTTL } from "@/lib/cache";
 
 function scoreColor(score: number): string {
   if (score >= 80) return "#22c55e";
@@ -31,22 +32,38 @@ export default async function ProjectsPage() {
   });
   if (!user) redirect("/sign-in");
 
-  const projects = await db.project.findMany({
-    where: { userId: user.id, deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      githubOwner: true,
-      githubRepo: true,
-      createdAt: true,
-      analyses: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { status: true, score: true },
+  const projectsCacheKey = cacheKeys.userProjects(user.id);
+  type ProjectRow = {
+    id: string;
+    name: string;
+    githubOwner: string | null;
+    githubRepo: string | null;
+    createdAt: Date;
+    analyses: { status: string; score: number | null }[];
+  };
+  let projects: ProjectRow[];
+  const cachedProjects = await cacheGet<ProjectRow[]>(projectsCacheKey);
+  if (cachedProjects) {
+    projects = cachedProjects;
+  } else {
+    projects = await db.project.findMany({
+      where: { userId: user.id, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        githubOwner: true,
+        githubRepo: true,
+        createdAt: true,
+        analyses: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { status: true, score: true },
+        },
       },
-    },
-  });
+    });
+    await cacheSet(projectsCacheKey, projects, cacheTTL.userProjects);
+  }
 
   return (
     <div className="p-8">

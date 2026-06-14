@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { triggerAnalysis } from "@/lib/queue/analysis";
 import { checkProjectLimit, checkPrivateRepoAccess, PlanLimitError } from "@/lib/billing/limits";
+import { cacheInvalidate, cacheKeys } from "@/lib/cache";
 
 function slugify(name: string): string {
   return name
@@ -98,6 +99,9 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
   } catch {
     return { ok: false, error: "unknown" };
   }
+
+  // Invalidate project list cache
+  await cacheInvalidate(cacheKeys.userProjects(user.id));
 
   // Trigger analysis non-fatally — queue may not be available in local dev
   try {
