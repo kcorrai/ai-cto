@@ -11,11 +11,11 @@ Every session starts here. Every session ends by updating STATE.
 
 ```
 PHASE:        8 — Quality & Growth
-ACTIVE TASK:  TASK-140
-STATUS:       PENDING
+ACTIVE TASK:  none
+STATUS:       PHASE COMPLETE
 LAST UPDATED: 2026-06-14
 BLOCKER:      none
-LAST DONE:    TASK-139 (2026-06-14)
+LAST DONE:    TASK-145 (2026-06-14)
 ```
 
 ---
@@ -44,16 +44,16 @@ STOP
 
 ## Phase Map
 
-| Phase                | Range               | Total | Done | State           |
-| -------------------- | ------------------- | ----- | ---- | --------------- |
-| 1 — MVP              | TASK-001 → TASK-025 | 25    | 25   | **DONE**        |
-| 2 — Core Product     | TASK-026 → TASK-050 | 25    | 25   | **DONE**        |
-| 3 — Advanced AI      | TASK-051 → TASK-070 | 20    | 20   | **DONE**        |
-| 4 — Growth           | TASK-071 → TASK-085 | 15    | 15   | **DONE**        |
-| 5 — Team             | TASK-086 → TASK-100 | 15    | 15   | **DONE**        |
-| 6 — Enterprise       | TASK-101 → TASK-115 | 15    | 15   | **DONE**        |
-| 7 — Platform         | TASK-116 → TASK-130 | 15    | 15   | **DONE**        |
-| 8 — Quality & Growth | TASK-131 → TASK-145 | 15    | 0    | **IN PROGRESS** |
+| Phase                | Range               | Total | Done | State    |
+| -------------------- | ------------------- | ----- | ---- | -------- |
+| 1 — MVP              | TASK-001 → TASK-025 | 25    | 25   | **DONE** |
+| 2 — Core Product     | TASK-026 → TASK-050 | 25    | 25   | **DONE** |
+| 3 — Advanced AI      | TASK-051 → TASK-070 | 20    | 20   | **DONE** |
+| 4 — Growth           | TASK-071 → TASK-085 | 15    | 15   | **DONE** |
+| 5 — Team             | TASK-086 → TASK-100 | 15    | 15   | **DONE** |
+| 6 — Enterprise       | TASK-101 → TASK-115 | 15    | 15   | **DONE** |
+| 7 — Platform         | TASK-116 → TASK-130 | 15    | 15   | **DONE** |
+| 8 — Quality & Growth | TASK-131 → TASK-145 | 15    | 15   | **DONE** |
 
 ---
 
@@ -193,23 +193,23 @@ All other docs/ files are strategic reference (vision, roadmap, etc.) — not ne
 
 ## Phase 8 Task Registry
 
-| ID       | Title                                    | State       | Depends On | Score |
-| -------- | ---------------------------------------- | ----------- | ---------- | ----- |
-| TASK-131 | Prisma CASCADE DELETE + compound indexes | **DONE**    | —          | 93    |
-| TASK-132 | Analysis job retry + exponential backoff | **DONE**    | 131        | 89    |
-| TASK-133 | Finding search + filter UI               | **DONE**    | —          | 87    |
-| TASK-134 | Structured logging (replace console.\*)  | **DONE**    | —          | 85    |
-| TASK-135 | GitHub Actions CI/CD integration         | **DONE**    | —          | 84    |
-| TASK-136 | /api/health endpoint                     | **DONE**    | —          | 83    |
-| TASK-137 | Analysis comparison view                 | **DONE**    | 133        | 82    |
-| TASK-138 | GitHub OAuth token auto-refresh          | **DONE**    | 131        | 80    |
-| TASK-139 | Personal analytics dashboard             | **DONE**    | 131        | 79    |
-| TASK-140 | Jira integration                         | **PENDING** | 131        | 76    |
-| TASK-141 | @vitest/coverage-v8 + pre-commit hook    | **PENDING** | —          | 73    |
-| TASK-142 | Webhook retry with exponential backoff   | **PENDING** | 131        | 71    |
-| TASK-143 | Redis caching for analysis results       | **PENDING** | 131        | 69    |
-| TASK-144 | Project tags / labels                    | **PENDING** | 131        | 68    |
-| TASK-145 | Finding CSV export                       | **PENDING** | 133        | 63    |
+| ID       | Title                                    | State    | Depends On | Score |
+| -------- | ---------------------------------------- | -------- | ---------- | ----- |
+| TASK-131 | Prisma CASCADE DELETE + compound indexes | **DONE** | —          | 93    |
+| TASK-132 | Analysis job retry + exponential backoff | **DONE** | 131        | 89    |
+| TASK-133 | Finding search + filter UI               | **DONE** | —          | 87    |
+| TASK-134 | Structured logging (replace console.\*)  | **DONE** | —          | 85    |
+| TASK-135 | GitHub Actions CI/CD integration         | **DONE** | —          | 84    |
+| TASK-136 | /api/health endpoint                     | **DONE** | —          | 83    |
+| TASK-137 | Analysis comparison view                 | **DONE** | 133        | 82    |
+| TASK-138 | GitHub OAuth token auto-refresh          | **DONE** | 131        | 80    |
+| TASK-139 | Personal analytics dashboard             | **DONE** | 131        | 79    |
+| TASK-140 | Jira integration                         | **DONE** | 131        | 76    |
+| TASK-141 | @vitest/coverage-v8 + pre-commit hook    | **DONE** | —          | 73    |
+| TASK-142 | Webhook retry with exponential backoff   | **DONE** | 131        | 71    |
+| TASK-143 | Redis caching for analysis results       | **DONE** | 131        | 69    |
+| TASK-144 | Project tags / labels                    | **DONE** | 131        | 68    |
+| TASK-145 | Finding CSV export                       | **DONE** | 133        | 63    |
 
 ---
 
