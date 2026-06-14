@@ -53,13 +53,14 @@ export async function triggerAnalysis(
       modules,
     };
 
-    // POST to the queue route (maxDuration=300) so the analysis survives after
-    // the server action returns. VERCEL_URL is auto-set per deployment.
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    // POST to the queue route which uses after() to run the analysis in the
+    // background after returning 202. We must await this fetch so the HTTP
+    // request is fully sent before the server-action context is terminated.
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3001");
 
-    fetch(`${baseUrl}/api/queues/analysis`, {
+    await fetch(`${baseUrl}/api/queues/analysis`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
