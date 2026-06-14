@@ -71,10 +71,12 @@ async function runWithRetry(payload: AnalysisJobPayload): Promise<void> {
 export async function POST(req: Request): Promise<Response> {
   const internalSecret = req.headers.get("x-internal-secret");
   if (internalSecret !== env.ENCRYPTION_KEY) {
+    console.error("[queue] Unauthorized — secret mismatch");
     return new Response("Unauthorized", { status: 401 });
   }
 
   const payload = (await req.json()) as AnalysisJobPayload;
+  console.log(`[queue] received analysisId=${payload.analysisId} projectId=${payload.projectId}`);
 
   // after() schedules the work to run after the response is sent, keeping
   // the Vercel function alive for up to maxDuration=300s. Without this, the

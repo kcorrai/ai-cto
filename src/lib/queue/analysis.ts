@@ -60,14 +60,26 @@ export async function triggerAnalysis(
       process.env.NEXT_PUBLIC_APP_URL ??
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3001");
 
-    await fetch(`${baseUrl}/api/queues/analysis`, {
+    logger.info("Dispatching analysis to queue", { analysisId, baseUrl: baseUrl.slice(0, 40) });
+
+    const queueRes = await fetch(`${baseUrl}/api/queues/analysis`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-internal-secret": env.ENCRYPTION_KEY,
       },
       body: JSON.stringify(payload),
-    }).catch((err: unknown) => logger.errorFrom("Failed to queue analysis", err));
+    }).catch((err: unknown) => {
+      logger.errorFrom("Failed to reach queue endpoint", err);
+      return null;
+    });
+
+    if (!queueRes) {
+      logger.error("Queue fetch failed (network error)", { analysisId });
+    } else if (!queueRes.ok) {
+      const body = await queueRes.text().catch(() => "");
+      logger.error("Queue endpoint returned error", { status: queueRes.status, body, analysisId });
+    }
   } catch (error) {
     await releaseLock(projectId);
     throw error;
