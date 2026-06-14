@@ -7,6 +7,7 @@ const UpdateSchema = z.object({
   autoAnalyze: z.boolean().optional(),
   monitoringEnabled: z.boolean().optional(),
   benchmarkOptIn: z.boolean().optional(),
+  tags: z.array(z.string().max(20)).max(5).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -34,16 +35,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Pro plan required for monitoring" }, { status: 403 });
   }
 
-  const data: Record<string, boolean> = {};
+  const data: Record<string, unknown> = {};
   if (result.data.autoAnalyze !== undefined) data.autoAnalyze = result.data.autoAnalyze;
   if (result.data.monitoringEnabled !== undefined)
     data.monitoringEnabled = result.data.monitoringEnabled;
   if (result.data.benchmarkOptIn !== undefined) data.benchmarkOptIn = result.data.benchmarkOptIn;
+  if (result.data.tags !== undefined) {
+    data.tags = result.data.tags.map((t) => t.trim().toLowerCase()).filter(Boolean);
+  }
 
   const updated = await db.project.update({
     where: { id: projectId },
     data,
-    select: { id: true, autoAnalyze: true, monitoringEnabled: true, benchmarkOptIn: true },
+    select: {
+      id: true,
+      autoAnalyze: true,
+      monitoringEnabled: true,
+      benchmarkOptIn: true,
+      tags: true,
+    },
   });
 
   return NextResponse.json(updated);

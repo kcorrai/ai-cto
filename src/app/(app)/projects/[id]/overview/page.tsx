@@ -7,6 +7,7 @@ import { AnalysisProgress } from "@/features/analyses/components/AnalysisProgres
 import { ReAnalyzeButton } from "@/features/analyses/components/ReAnalyzeButton";
 import { BadgeSetup } from "@/features/projects/components/BadgeSetup";
 import { AutoAnalyzeToggle } from "@/features/projects/components/AutoAnalyzeToggle";
+import { TagEditor } from "@/features/projects/components/TagEditor";
 import { env } from "@/env";
 import type { Metadata } from "next";
 
@@ -44,6 +45,7 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
       lastAnalyzedAt: true,
       analysisCount: true,
       autoAnalyze: true,
+      tags: true,
     },
   });
   if (!project) notFound();
@@ -166,6 +168,11 @@ export default async function OverviewPage(props: { params: Promise<{ id: string
           initialEnabled={project.autoAnalyze}
           isPro={user.plan !== "free"}
         />
+      </div>
+
+      {/* Tags */}
+      <div className="mb-4">
+        <TagEditor projectId={project.id} initialTags={project.tags} />
       </div>
 
       {/* Badge setup */}
