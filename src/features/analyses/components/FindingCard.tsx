@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, CheckCircle, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import { SeverityBadge } from "./SeverityBadge";
 import { LinearPushButton, LinearBadge } from "./LinearPushButton";
+import { JiraPushButton, JiraBadge } from "./JiraPushButton";
 
 const SEVERITY_BORDER: Record<string, string> = {
   critical: "#ef4444",
@@ -49,6 +50,7 @@ export type FindingCardProps = {
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
   isLinearConnected?: boolean;
+  isJiraConnected?: boolean;
 };
 
 async function resolveFinding(id: string): Promise<void> {
@@ -62,6 +64,7 @@ export function FindingCard({
   selected,
   onToggleSelect,
   isLinearConnected = false,
+  isJiraConnected = false,
 }: FindingCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [snippetOpen, setSnippetOpen] = useState(false);
@@ -77,10 +80,14 @@ export function FindingCard({
         linearIssueId?: string;
         linearIssueUrl?: string;
         linearIssueIdentifier?: string;
+        jiraIssueKey?: string;
+        jiraIssueUrl?: string;
       }
     | undefined;
   const linearIssueUrl = meta?.linearIssueUrl ?? null;
   const linearIdentifier = meta?.linearIssueIdentifier;
+  const [jiraIssueKey, setJiraIssueKey] = useState(meta?.jiraIssueKey ?? null);
+  const [jiraIssueUrl, setJiraIssueUrl] = useState(meta?.jiraIssueUrl ?? null);
 
   const borderColor = SEVERITY_BORDER[finding.severity] ?? "#71717a";
   const moduleName = MODULE_NAMES[finding.module] ?? finding.module;
@@ -290,6 +297,19 @@ export function FindingCard({
                     <LinearPushButton
                       findingIds={[finding.id]}
                       isLinearConnected={isLinearConnected}
+                    />
+                  ))}
+                {!readonly &&
+                  (jiraIssueKey && jiraIssueUrl ? (
+                    <JiraBadge issueKey={jiraIssueKey} issueUrl={jiraIssueUrl} />
+                  ) : (
+                    <JiraPushButton
+                      findingId={finding.id}
+                      isJiraConnected={isJiraConnected}
+                      onPushed={(key, url) => {
+                        setJiraIssueKey(key);
+                        setJiraIssueUrl(url);
+                      }}
                     />
                   ))}
               </div>

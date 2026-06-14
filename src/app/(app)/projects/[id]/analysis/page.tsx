@@ -41,9 +41,13 @@ export default async function AnalysisPage(props: {
 
   const user = await db.user.findUnique({
     where: { clerkId },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, settings: true },
   });
   if (!user) redirect("/sign-in");
+
+  const userSettings = (user.settings as Record<string, unknown>) ?? {};
+  const isLinearConnected = !!userSettings.linearAccessToken;
+  const isJiraConnected = !!userSettings.jiraAccessToken;
 
   const project = await db.project.findFirst({
     where: { id, userId: user.id, status: { not: "deleted" } },
@@ -284,7 +288,11 @@ export default async function AnalysisPage(props: {
       {/* Findings */}
       {allFindings.length > 0 && (
         <Suspense fallback={<FindingsList findings={allFindings} />}>
-          <FindingsList findings={allFindings} />
+          <FindingsList
+            findings={allFindings}
+            isLinearConnected={isLinearConnected}
+            isJiraConnected={isJiraConnected}
+          />
         </Suspense>
       )}
       {allFindings.length === 0 && latest.modules.length > 0 && (

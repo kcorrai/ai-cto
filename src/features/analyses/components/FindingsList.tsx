@@ -60,12 +60,14 @@ function ModuleSection({
   selected,
   onToggleSelect,
   isLinearConnected,
+  isJiraConnected,
 }: {
   group: ModuleGroup;
   readonly?: boolean;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
   isLinearConnected?: boolean;
+  isJiraConnected?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const name = MODULE_NAMES[group.module] ?? group.module;
@@ -95,6 +97,7 @@ function ModuleSection({
               readonly={readonly ?? false}
               selected={selected.has(f.id)}
               isLinearConnected={isLinearConnected ?? false}
+              isJiraConnected={isJiraConnected ?? false}
               {...(!readonly && { onToggleSelect })}
             />
           ))}
@@ -140,10 +143,12 @@ export function FindingsList({
   findings: initialFindings,
   readonly,
   isLinearConnected = false,
+  isJiraConnected = false,
 }: {
   findings: FlatFinding[];
   readonly?: boolean;
   isLinearConnected?: boolean;
+  isJiraConnected?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -479,6 +484,7 @@ export function FindingsList({
               selected={selected}
               onToggleSelect={toggleSelect}
               isLinearConnected={isLinearConnected}
+              isJiraConnected={isJiraConnected}
             />
           ))}
         </div>

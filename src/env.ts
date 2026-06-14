@@ -61,6 +61,10 @@ export const env = createEnv({
     LINEAR_CLIENT_ID: z.string().min(1).optional(),
     LINEAR_CLIENT_SECRET: z.string().min(1).optional(),
 
+    // Jira integration (optional)
+    JIRA_CLIENT_ID: z.string().min(1).optional(),
+    JIRA_CLIENT_SECRET: z.string().min(1).optional(),
+
     // Slack integration (optional)
     SLACK_CLIENT_ID: z.string().min(1).optional(),
     SLACK_CLIENT_SECRET: z.string().min(1).optional(),
@@ -108,6 +112,8 @@ export const env = createEnv({
     BITBUCKET_CLIENT_SECRET: process.env.BITBUCKET_CLIENT_SECRET,
     LINEAR_CLIENT_ID: process.env.LINEAR_CLIENT_ID,
     LINEAR_CLIENT_SECRET: process.env.LINEAR_CLIENT_SECRET,
+    JIRA_CLIENT_ID: process.env.JIRA_CLIENT_ID,
+    JIRA_CLIENT_SECRET: process.env.JIRA_CLIENT_SECRET,
     SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
     SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET,
     SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET,

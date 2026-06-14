@@ -12,6 +12,7 @@ import { getPlanLimits } from "@/lib/billing/limits";
 import { isGitHubAppEnabled } from "@/lib/github/app";
 import { ensureReferralCode, getReferralStats } from "@/lib/referral";
 import { SettingsReferral } from "@/features/settings/components/SettingsReferral";
+import { DisconnectJiraButton } from "@/components/settings/DisconnectJiraButton";
 
 export const metadata: Metadata = { title: "Settings — AI CTO" };
 
@@ -66,6 +67,8 @@ export default async function SettingsPage() {
   const userSettings = (dbUser.settings as Record<string, unknown>) ?? {};
   const isLinearConnected = !!userSettings.linearAccessToken;
   const linearUserName = userSettings.linearUserName as string | undefined;
+  const isJiraConnected = !!userSettings.jiraAccessToken;
+  const jiraCloudName = userSettings.jiraCloudName as string | undefined;
   const emailOnComplete = Boolean(userSettings.emailOnComplete ?? true);
   const weeklyDigest = Boolean(userSettings.weeklyDigest ?? false);
   const emailOnCritical = Boolean(userSettings.emailOnCritical ?? true);
@@ -218,6 +221,40 @@ export default async function SettingsPage() {
                 className="rounded-md border border-[#2a2a2a] px-3 py-1.5 text-xs text-[#a0a0a0] transition-colors hover:border-[#404040] hover:text-[#f0f0f0]"
               >
                 Connect Linear
+              </a>
+            )}
+          </div>
+        </Section>
+
+        {/* Jira integration */}
+        <Section
+          title="Jira Integration"
+          description="Connect Jira Cloud to push findings as issues directly from AI CTO."
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              {isJiraConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
+                  <span className="text-sm text-[#a0a0a0]">
+                    {jiraCloudName ? `Connected to ${jiraCloudName}` : "Jira connected"}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#606060]" />
+                  <span className="text-sm text-[#606060]">Not connected</span>
+                </div>
+              )}
+            </div>
+            {isJiraConnected ? (
+              <DisconnectJiraButton />
+            ) : (
+              <a
+                href="/api/integrations/jira/connect"
+                className="rounded-md border border-[#2a2a2a] px-3 py-1.5 text-xs text-[#a0a0a0] transition-colors hover:border-[#404040] hover:text-[#f0f0f0]"
+              >
+                Connect Jira
               </a>
             )}
           </div>
