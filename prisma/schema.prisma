@@ -126,6 +126,7 @@ enum WebhookDeliveryStatus {
   pending
   success
   failed
+  dead
 }
 
 enum MessageRole {
@@ -636,21 +637,23 @@ model OutboundWebhook {
 }
 
 model WebhookDelivery {
-  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  webhookId  String                @db.Uuid
-  event      WebhookEvent
-  payload    Json
-  status     WebhookDeliveryStatus @default(pending)
-  statusCode Int?
-  response   String?               @db.Text
-  durationMs Int?
-  attempt    Int                   @default(1)
-  deliveredAt DateTime?            @db.Timestamptz(6)
-  createdAt  DateTime              @default(now()) @db.Timestamptz(6)
+  id           String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webhookId    String                @db.Uuid
+  event        WebhookEvent
+  payload      Json
+  status       WebhookDeliveryStatus @default(pending)
+  statusCode   Int?
+  response     String?               @db.Text
+  durationMs   Int?
+  attempt      Int                   @default(1)
+  nextRetryAt  DateTime?             @db.Timestamptz(6)
+  deliveredAt  DateTime?             @db.Timestamptz(6)
+  createdAt    DateTime              @default(now()) @db.Timestamptz(6)
 
   webhook OutboundWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId, createdAt(sort: Desc)])
+  @@index([status, nextRetryAt])
   @@map("webhook_deliveries")
 }
 

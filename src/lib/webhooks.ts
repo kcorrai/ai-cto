@@ -1,6 +1,7 @@
 import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
+import { logger } from "@/lib/logger";
 import type { WebhookEvent } from "@prisma/client";
 
 type WebhookPayload = {
@@ -9,6 +10,10 @@ type WebhookPayload = {
   organizationId: string;
   data: Record<string, unknown>;
 };
+
+// Retry delay schedule (ms): attempt 2→1min, 3→5min, 4→30min, 5→2hr
+const RETRY_DELAYS_MS = [0, 60_000, 300_000, 1_800_000, 7_200_000];
+const MAX_ATTEMPTS = 5;
 
 async function deliverWebhook(params: {
   webhookId: string;
@@ -37,6 +42,12 @@ async function deliverWebhook(params: {
   } catch {
     return { status: 0, durationMs: Date.now() - start, response: "Request failed or timed out" };
   }
+}
+
+function nextRetryAt(attemptCount: number): Date | null {
+  const delayMs = RETRY_DELAYS_MS[attemptCount]; // index = next attempt number
+  if (!delayMs) return null;
+  return new Date(Date.now() + delayMs);
 }
 
 export async function dispatchWebhookEvent(params: {
@@ -71,18 +82,86 @@ export async function dispatchWebhookEvent(params: {
         url: wh.url,
         payload,
       });
+
+      const success = status >= 200 && status < 300;
       await db.webhookDelivery.create({
         data: {
           webhookId: wh.id,
           event: params.event,
           payload: payload as never,
-          status: status >= 200 && status < 300 ? "success" : "failed",
+          status: success ? "success" : "failed",
           statusCode: status || null,
           response,
           durationMs,
           deliveredAt: new Date(),
+          attempt: 1,
+          nextRetryAt: success ? null : nextRetryAt(1),
         },
       });
     })
   );
+}
+
+export async function retryFailedWebhooks(): Promise<void> {
+  const now = new Date();
+  const due = await db.webhookDelivery.findMany({
+    where: {
+      status: "failed",
+      nextRetryAt: { lte: now },
+      attempt: { lt: MAX_ATTEMPTS },
+    },
+    select: {
+      id: true,
+      attempt: true,
+      webhookId: true,
+      event: true,
+      payload: true,
+      webhook: { select: { url: true, secret: true, enabled: true } },
+    },
+    take: 50,
+  });
+
+  for (const delivery of due) {
+    if (!delivery.webhook.enabled) {
+      await db.webhookDelivery.update({
+        where: { id: delivery.id },
+        data: { status: "dead", nextRetryAt: null },
+      });
+      continue;
+    }
+
+    const newAttempt = delivery.attempt + 1;
+    const secret = decrypt(delivery.webhook.secret);
+    const payload = delivery.payload as WebhookPayload;
+
+    const { status, durationMs, response } = await deliverWebhook({
+      webhookId: delivery.webhookId,
+      secret,
+      url: delivery.webhook.url,
+      payload,
+    });
+
+    const success = status >= 200 && status < 300;
+    const dead = !success && newAttempt >= MAX_ATTEMPTS;
+
+    await db.webhookDelivery.update({
+      where: { id: delivery.id },
+      data: {
+        status: success ? "success" : dead ? "dead" : "failed",
+        statusCode: status || null,
+        response,
+        durationMs,
+        attempt: newAttempt,
+        deliveredAt: success ? new Date() : null,
+        nextRetryAt: success || dead ? null : nextRetryAt(newAttempt),
+      },
+    });
+
+    if (dead) {
+      logger.warn("Webhook delivery dead after max attempts", {
+        deliveryId: delivery.id,
+        webhookId: delivery.webhookId,
+      });
+    }
+  }
 }
