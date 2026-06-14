@@ -34,7 +34,7 @@ const tiers = [
     description: "For small engineering teams.",
     highlighted: false,
     cta: "Contact us",
-    href: "/sign-up",
+    href: "mailto:yanlizcakaan@gmail.com?subject=AI%20CTO%20Team%20Plan",
     annualNote: "$990 / year (save 2 months)",
   },
 ];
