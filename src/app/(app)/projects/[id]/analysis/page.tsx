@@ -292,6 +292,7 @@ export default async function AnalysisPage(props: {
             findings={allFindings}
             isLinearConnected={isLinearConnected}
             isJiraConnected={isJiraConnected}
+            analysisId={latest.id}
           />
         </Suspense>
       )}

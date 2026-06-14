@@ -6,6 +6,7 @@ import { ChevronDown, Search, X, SlidersHorizontal } from "lucide-react";
 import { FindingCard } from "./FindingCard";
 import type { FindingCardData } from "./FindingCard";
 import { LinearPushButton } from "./LinearPushButton";
+import { ExportCsvButton } from "./ExportCsvButton";
 
 type Severity = "critical" | "high" | "medium" | "low" | "info";
 type StatusFilter = "all" | "unresolved" | "resolved";
@@ -144,11 +145,13 @@ export function FindingsList({
   readonly,
   isLinearConnected = false,
   isJiraConnected = false,
+  analysisId,
 }: {
   findings: FlatFinding[];
   readonly?: boolean;
   isLinearConnected?: boolean;
   isJiraConnected?: boolean;
+  analysisId?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -463,11 +466,14 @@ export function FindingsList({
         </div>
       </div>
 
-      {/* Result count */}
-      <p className="mb-3 text-xs text-[#606060]">
-        Showing {filtered.length} of {findings.length} finding
-        {findings.length !== 1 ? "s" : ""}
-      </p>
+      {/* Result count + export */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs text-[#606060]">
+          Showing {filtered.length} of {findings.length} finding
+          {findings.length !== 1 ? "s" : ""}
+        </p>
+        {analysisId && <ExportCsvButton analysisId={analysisId} totalVisible={filtered.length} />}
+      </div>
 
       {/* Results */}
       {filtered.length === 0 ? (
