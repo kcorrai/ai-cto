@@ -131,7 +131,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Contact us",
-    href: "/sign-up",
+    href: "mailto:yanlizcakaan@gmail.com?subject=AI%20CTO%20Team%20Plan",
     highlighted: false,
   },
 ];

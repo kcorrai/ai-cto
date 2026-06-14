@@ -48,7 +48,7 @@ export default async function EnterpriseAdminPage() {
           The Enterprise Admin Console is available on the Enterprise plan.
         </p>
         <a
-          href="/settings/billing"
+          href="/settings"
           className="rounded-lg bg-[#3b82f6] px-4 py-2 text-sm font-medium text-white hover:bg-[#2563eb] transition-colors"
         >
           Upgrade to Enterprise
