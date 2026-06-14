@@ -1,5 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { hasPermission, mapClerkRoleToOrgRole, type Permission } from "./permissions";
+
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: { findUnique: vi.fn() },
+  },
+}));
 
 const ALL_PERMISSIONS: Permission[] = [
   "project:create",
@@ -135,5 +145,79 @@ describe("mapClerkRoleToOrgRole", () => {
     expect(mapClerkRoleToOrgRole("unknown")).toBe("viewer");
     expect(mapClerkRoleToOrgRole("org:guest")).toBe("viewer");
     expect(mapClerkRoleToOrgRole("OWNER")).toBe("viewer");
+  });
+});
+
+describe("checkOrgPermission", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns false when no orgRole", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ orgRole: null } as never);
+    const { checkOrgPermission } = await import("./permissions");
+    const result = await checkOrgPermission("project:create");
+    expect(result).toBe(false);
+  });
+
+  it("returns true for owner with any permission", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ orgRole: "org:owner" } as never);
+    const { checkOrgPermission } = await import("./permissions");
+    expect(await checkOrgPermission("billing:manage")).toBe(true);
+    expect(await checkOrgPermission("org:delete")).toBe(true);
+  });
+
+  it("returns false for viewer with restricted permission", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ orgRole: "org:member_viewer" } as never);
+    const { checkOrgPermission } = await import("./permissions");
+    expect(await checkOrgPermission("project:create")).toBe(false);
+  });
+});
+
+describe("requireOrgPermission", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("throws when permission is denied", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ orgRole: null } as never);
+    const { requireOrgPermission } = await import("./permissions");
+    await expect(requireOrgPermission("org:delete")).rejects.toThrow("Forbidden");
+  });
+
+  it("does not throw when permission is granted", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ orgRole: "org:owner" } as never);
+    const { requireOrgPermission } = await import("./permissions");
+    await expect(requireOrgPermission("billing:manage")).resolves.toBeUndefined();
+  });
+});
+
+describe("getDbUserId", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns null when not authenticated", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ userId: null } as never);
+    const { getDbUserId } = await import("./permissions");
+    expect(await getDbUserId()).toBeNull();
+  });
+
+  it("returns db user id when authenticated", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ userId: "clerk-1" } as never);
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ id: "db-user-1" } as never);
+    const { getDbUserId } = await import("./permissions");
+    expect(await getDbUserId()).toBe("db-user-1");
+  });
+
+  it("returns null when db user not found", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    vi.mocked(auth).mockResolvedValue({ userId: "clerk-1" } as never);
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue(null);
+    const { getDbUserId } = await import("./permissions");
+    expect(await getDbUserId()).toBeNull();
   });
 });

@@ -1,5 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { getPlanLimits, getModulesForPlan } from "./limits";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { getPlanLimits, getModulesForPlan, PlanLimitError } from "./limits";
+
+// Mock DB — async limit checks require it
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: { findUnique: vi.fn() },
+    project: { count: vi.fn() },
+    analysis: { count: vi.fn() },
+  },
+}));
 
 describe("getPlanLimits", () => {
   it("free plan — 1 project, 2 analyses, no private repos", () => {
@@ -98,5 +107,116 @@ describe("getModulesForPlan", () => {
     expect(modules).toContain("market_intelligence");
     expect(modules).toContain("team_advisor");
     expect(modules).toContain("security_owasp");
+  });
+});
+
+describe("PlanLimitError", () => {
+  it("has correct name", () => {
+    const err = new PlanLimitError("project_limit", "too many projects");
+    expect(err.name).toBe("PlanLimitError");
+  });
+
+  it("stores reason and message", () => {
+    const err = new PlanLimitError("analysis_limit", "limit exceeded");
+    expect(err.reason).toBe("analysis_limit");
+    expect(err.message).toBe("limit exceeded");
+  });
+
+  it("is an instance of Error", () => {
+    const err = new PlanLimitError("private_repo", "no private repos");
+    expect(err).toBeInstanceOf(Error);
+  });
+
+  it("supports all reason types", () => {
+    expect(new PlanLimitError("project_limit", "").reason).toBe("project_limit");
+    expect(new PlanLimitError("analysis_limit", "").reason).toBe("analysis_limit");
+    expect(new PlanLimitError("private_repo", "").reason).toBe("private_repo");
+  });
+});
+
+describe("checkProjectLimit", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns early when user not found", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue(null);
+    const { checkProjectLimit } = await import("./limits");
+    await expect(checkProjectLimit("user-1")).resolves.toBeUndefined();
+  });
+
+  it("returns early when plan has unlimited projects", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "enterprise" } as never);
+    const { checkProjectLimit } = await import("./limits");
+    await expect(checkProjectLimit("user-1")).resolves.toBeUndefined();
+    expect(db.project.count).not.toHaveBeenCalled();
+  });
+
+  it("throws PlanLimitError when free user hits project limit", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "free" } as never);
+    vi.mocked(db.project.count).mockResolvedValue(1);
+    const { checkProjectLimit } = await import("./limits");
+    await expect(checkProjectLimit("user-1")).rejects.toThrow(PlanLimitError);
+  });
+
+  it("does not throw when under the project limit", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "free" } as never);
+    vi.mocked(db.project.count).mockResolvedValue(0);
+    const { checkProjectLimit } = await import("./limits");
+    await expect(checkProjectLimit("user-1")).resolves.toBeUndefined();
+  });
+});
+
+describe("checkAnalysisLimit", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns early when user not found", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue(null);
+    const { checkAnalysisLimit } = await import("./limits");
+    await expect(checkAnalysisLimit("user-1")).resolves.toBeUndefined();
+  });
+
+  it("returns early when plan has unlimited analyses", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "team" } as never);
+    const { checkAnalysisLimit } = await import("./limits");
+    await expect(checkAnalysisLimit("user-1")).resolves.toBeUndefined();
+    expect(db.analysis.count).not.toHaveBeenCalled();
+  });
+
+  it("throws PlanLimitError when free user hits analysis limit", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "free" } as never);
+    vi.mocked(db.analysis.count).mockResolvedValue(2);
+    const { checkAnalysisLimit } = await import("./limits");
+    await expect(checkAnalysisLimit("user-1")).rejects.toThrow(PlanLimitError);
+  });
+});
+
+describe("checkPrivateRepoAccess", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns early when user not found", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue(null);
+    const { checkPrivateRepoAccess } = await import("./limits");
+    await expect(checkPrivateRepoAccess("user-1")).resolves.toBeUndefined();
+  });
+
+  it("throws PlanLimitError for free plan", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "free" } as never);
+    const { checkPrivateRepoAccess } = await import("./limits");
+    await expect(checkPrivateRepoAccess("user-1")).rejects.toThrow(PlanLimitError);
+  });
+
+  it("does not throw for pro plan", async () => {
+    const { db } = await import("@/lib/db");
+    vi.mocked(db.user.findUnique).mockResolvedValue({ plan: "pro" } as never);
+    const { checkPrivateRepoAccess } = await import("./limits");
+    await expect(checkPrivateRepoAccess("user-1")).resolves.toBeUndefined();
   });
 });
