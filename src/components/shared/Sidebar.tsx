@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 
 const primaryNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard/analytics", icon: BarChart2, label: "Analytics" },
   { href: "/dashboard/advisor", icon: Bot, label: "Portfolio Advisor" },
   { href: "/dashboard/monitoring", icon: Activity, label: "Monitoring" },
   { href: "/dashboard/white-label", icon: Layers, label: "White-Label" },
