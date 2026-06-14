@@ -371,7 +371,11 @@ export async function fetchRepository(
       blobPath,
       frameworkHints: [],
     };
-    await put(blobPath, JSON.stringify(bundle), { access: "private", addRandomSuffix: false });
+    await put(blobPath, JSON.stringify(bundle), {
+      access: "private",
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
     return bundle;
   }
 
@@ -469,7 +473,11 @@ export async function fetchRepository(
     frameworkHints,
   };
 
-  await put(blobPath, JSON.stringify(bundle), { access: "private", addRandomSuffix: false });
+  await put(blobPath, JSON.stringify(bundle), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
 
   return bundle;
 }
