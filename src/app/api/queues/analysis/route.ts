@@ -30,6 +30,10 @@ async function runWithRetry(payload: AnalysisJobPayload): Promise<void> {
       return;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(
+        `[analysis] attempt ${attempt + 1}/${MAX_RETRIES} failed for ${payload.analysisId}:`,
+        lastError.message
+      );
     }
   }
 

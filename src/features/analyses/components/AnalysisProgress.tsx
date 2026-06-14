@@ -11,6 +11,7 @@ type ProgressData = {
   status: string;
   progress: number;
   modules: ModuleRecord[];
+  errorMessage?: string | null;
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -140,6 +141,7 @@ export function AnalysisProgress({
   const stageLabel = STAGE_LABELS[data.status] ?? data.status;
   const isFailed = data.status === "failed";
   const isStuck = data.status === "queued" && data.progress === 0;
+  const analysisError = data.errorMessage ?? null;
 
   return (
     <div className="mx-auto max-w-[480px] px-6 py-12">
@@ -202,6 +204,12 @@ export function AnalysisProgress({
           <p className="text-sm text-[#606060]">
             {isFailed ? "Something went wrong during analysis." : "Analysis is stuck in queue."}
           </p>
+          {analysisError && (
+            <div className="rounded-md border border-[#3a1a1a] bg-[#1a0a0a] px-4 py-3">
+              <p className="text-xs font-medium text-[#ef4444]">Error:</p>
+              <p className="mt-1 text-xs text-[#a0a0a0]">{analysisError}</p>
+            </div>
+          )}
           {error && <p className="text-sm text-[#ef4444]">{error}</p>}
           <button
             onClick={handleRetry}

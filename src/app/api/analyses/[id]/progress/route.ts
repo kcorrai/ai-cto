@@ -42,6 +42,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
           select: {
             status: true,
             progress: true,
+            errorMessage: true,
             modules: {
               select: { module: true, status: true },
               orderBy: { createdAt: "asc" },
@@ -53,7 +54,12 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 
         try {
           controller.enqueue(
-            encode({ status: row.status, progress: row.progress, modules: row.modules })
+            encode({
+              status: row.status,
+              progress: row.progress,
+              modules: row.modules,
+              errorMessage: row.errorMessage ?? null,
+            })
           );
         } catch {
           break;
